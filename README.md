@@ -1,29 +1,36 @@
-# world-template
-An advanced Minecraft world template for map makers
+# A* Pathfinding Data Pack Development World
 
-# OS Compatability
-This template is **only** compatible with Windows 10 and Windows 11 due to the use of Powershell. This may change in the future.
+A* is async, and highly configurable:
+Configurable aspects include:
+- block weights
+- diagonal, straight, and vertical movement cost
+- The maximum MSPT A* will consume during a tick (You can see me adjusting this on the fly in the top-down video)
+- Maximum number of nodes closed
+- Whether or not the pathfinding is 3D or 2D
+- What blocks can be pathed on
+- What blocks can be pathed though
+- What blocks can be walked up as stairs (for 3D pathfinding)
 
-# Requirements
-You must have these installed for this template's scripts to function properly.
-- [7zip](https://www.7-zip.org/)
-- [Node.js](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
-- [yarn](https://classic.yarnpkg.com/lang/en/docs/install) or [npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
+Paths are requested and put in a queue using a function.
 
-# Setting up your world
-How to initialize the template.
-- Create a new repo using this template.
-- Run `yarn install` to install dependancies.
-- Then setup the repo with `yarn setup`.
+When a path is solved the path info including nodes and ID is returned in a storage key, and a callback function tag is called as the entity that requested the path.
 
-## Creating a Data Pack
-You can create a brand-new Data Pack from a template via `yarn create_datapack`.
+If your path request allows for intermediate pathfinding, if any end condition is met that isn't finding the end node, A* will return a path to the best position it found.
+End conditions include:
+- Finding the end node
+- No more open areas are left (Path unsolvable)
+- Maximum closed nodes reached
+- Path is cancelled using the cancellation function
 
-## Adding other Data Packs
-If you have some pre-made Data Packs you'd like to include, Simply add them to the `datapacks` folder, and register them by running `yarn scan_datapacks`.
 
-# Developing
-You can run `yarn dev:datapack-id` to start MC-Build for a specific Data Pack.
+In this example red concrete is 2x more annoying to path over for A*, so if avoids it if it can. This gives us the nice effect of the NPCs mostly sticking to the center of the maze's walkways
 
-# Packaging
-If you run `yarn package` the packaging script will automatically clean, compile, combine and zip the world, Resource Pack, and Data Packs into the `dist/` folder.
+All of the marker entities you see (which are being made visible by a mod called Visible Barriers) that aren't part of the solving process are either the last calculated path - which is a debug toggle - or the target entities I'm using to randomly select a destination for each NPC
+
+The NPC AI runs on a simple state machine with only a few states:
+- IDLE
+- WAITING_FOR_PATH
+- FOLLOWING_PATH
+- STARTING_WALK_CYCLE
+- ENDING_WALK_CYCLE
+- WAITING_FOR_ANIM
