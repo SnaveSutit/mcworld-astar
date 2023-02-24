@@ -1,0 +1,8 @@
+{
+	"include": [".tools/*"],
+	"compilerOptions": {
+		"alwaysStrict": true,
+		"target": "ES2022",
+		"moduleResolution": "Node"
+	}
+}
