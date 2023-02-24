@@ -1,0 +1,6 @@
+{
+	"pack": {
+		"pack_format": 8,
+		"description": "Example implementation of SnaveSutit's A* data pack for pathfinding"
+	}
+}

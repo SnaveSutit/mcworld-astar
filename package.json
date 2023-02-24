@@ -1,15 +1,20 @@
 {
-	"projectId": "world-template",
-	"projectName": "World Template",
+	"projectId": "astar",
+	"projectName": "Astar",
 	"version": "1.0.0",
 	"scripts": {
 		"package": "ts-node ./.tools/package.ts",
 		"setup": "ts-node ./.tools/setup.ts",
 		"create_datapack": "ts-node ./.tools/create_datapack.ts",
 		"scan_datapacks": "ts-node ./.tools/scan_datapacks.ts",
-		"dev": "echo Try running 'dev:datapack-id' instead! Or run 'scan_datapacks' if you've added a new datapack and it's not registered."
+		"dev": "echo Try running 'dev:datapack-id' instead! Or run 'scan_datapacks' if you've added a new datapack and it's not registered.",
+		"dev:astar": "cd \"datapacks\\Astar\" && mcb -w-alt -debounce-time 100",
+		"dev:example-usage": "cd \"datapacks\\example-usage\" && mcb -w-alt -debounce-time 100"
 	},
-	"datapacks": {},
+	"datapacks": {
+		"astar": "Astar",
+		"example-usage": "example-usage"
+	},
 	"devDependencies": {
 		"@types/node": "^18.11.18",
 		"@types/terminal-kit": "^2.5.1",

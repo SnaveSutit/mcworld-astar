@@ -1,0 +1,378 @@
+{
+	"parent": "item/generated",
+	"textures": {
+		"layer0": "item/white_dye"
+	},
+	"overrides": [
+		{
+			"predicate": {
+				"custom_model_data": 1
+			},
+			"model": "astar:player/body"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 2
+			},
+			"model": "astar:player/head"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 3
+			},
+			"model": "astar:player/rightarm"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 4
+			},
+			"model": "astar:player/leftarm"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 5
+			},
+			"model": "astar:player/leftleg"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 6
+			},
+			"model": "astar:player/rightleg"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 7
+			},
+			"model": "astar:player/snavesutit/body"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 8
+			},
+			"model": "astar:player/snavesutit/head"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 9
+			},
+			"model": "astar:player/snavesutit/rightarm"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 10
+			},
+			"model": "astar:player/snavesutit/leftarm"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 11
+			},
+			"model": "astar:player/snavesutit/leftleg"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 12
+			},
+			"model": "astar:player/snavesutit/rightleg"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 13
+			},
+			"model": "astar:player/steve/body"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 14
+			},
+			"model": "astar:player/steve/head"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 15
+			},
+			"model": "astar:player/steve/rightarm"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 16
+			},
+			"model": "astar:player/steve/leftarm"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 17
+			},
+			"model": "astar:player/steve/leftleg"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 18
+			},
+			"model": "astar:player/steve/rightleg"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 19
+			},
+			"model": "astar:player/alex/body"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 20
+			},
+			"model": "astar:player/alex/head"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 21
+			},
+			"model": "astar:player/alex/rightarm"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 22
+			},
+			"model": "astar:player/alex/leftarm"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 23
+			},
+			"model": "astar:player/alex/leftleg"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 24
+			},
+			"model": "astar:player/alex/rightleg"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 25
+			},
+			"model": "astar:player/fetchbot/body"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 26
+			},
+			"model": "astar:player/fetchbot/head"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 27
+			},
+			"model": "astar:player/fetchbot/rightarm"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 28
+			},
+			"model": "astar:player/fetchbot/leftarm"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 29
+			},
+			"model": "astar:player/fetchbot/leftleg"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 30
+			},
+			"model": "astar:player/fetchbot/rightleg"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 31
+			},
+			"model": "astar:player/verylyfeless/body"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 32
+			},
+			"model": "astar:player/verylyfeless/head"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 33
+			},
+			"model": "astar:player/verylyfeless/rightarm"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 34
+			},
+			"model": "astar:player/verylyfeless/leftarm"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 35
+			},
+			"model": "astar:player/verylyfeless/leftleg"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 36
+			},
+			"model": "astar:player/verylyfeless/rightleg"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 37
+			},
+			"model": "astar:player/nerdrope/body"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 38
+			},
+			"model": "astar:player/nerdrope/head"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 39
+			},
+			"model": "astar:player/nerdrope/rightarm"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 40
+			},
+			"model": "astar:player/nerdrope/leftarm"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 41
+			},
+			"model": "astar:player/nerdrope/leftleg"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 42
+			},
+			"model": "astar:player/nerdrope/rightleg"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 43
+			},
+			"model": "astar:player/violet/body"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 44
+			},
+			"model": "astar:player/violet/head"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 45
+			},
+			"model": "astar:player/violet/rightarm"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 46
+			},
+			"model": "astar:player/violet/leftarm"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 47
+			},
+			"model": "astar:player/violet/leftleg"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 48
+			},
+			"model": "astar:player/violet/rightleg"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 49
+			},
+			"model": "astar:player/stuarta/body"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 50
+			},
+			"model": "astar:player/stuarta/head"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 51
+			},
+			"model": "astar:player/stuarta/rightarm"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 52
+			},
+			"model": "astar:player/stuarta/leftarm"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 53
+			},
+			"model": "astar:player/stuarta/leftleg"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 54
+			},
+			"model": "astar:player/stuarta/rightleg"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 55
+			},
+			"model": "astar:player/cheesierpasta/body"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 56
+			},
+			"model": "astar:player/cheesierpasta/head"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 57
+			},
+			"model": "astar:player/cheesierpasta/rightarm"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 58
+			},
+			"model": "astar:player/cheesierpasta/leftarm"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 59
+			},
+			"model": "astar:player/cheesierpasta/leftleg"
+		},
+		{
+			"predicate": {
+				"custom_model_data": 60
+			},
+			"model": "astar:player/cheesierpasta/rightleg"
+		}
+	],
+	"aj": {
+		"includedRigs": {
+			"b0b7f8ad-8412-63a5-56a7-c8603951e39a": {
+				"name": "player",
+				"usedIDs": [
+					[1, 60]
+				]
+			}
+		}
+	}
+}

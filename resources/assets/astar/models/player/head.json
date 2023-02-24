@@ -1,0 +1,68 @@
+{
+	"__credit": "Generated using Animated Java (https://animated-java.dev/)",
+	"textures": {
+		"1": "astar:skins/steve",
+		"2": "astar:skins/alex"
+	},
+	"elements": [
+		{
+			"faces": {
+				"north": {"uv": [2, 2, 4, 4], "texture": "#1"},
+				"east": {"uv": [0, 2, 2, 4], "texture": "#1"},
+				"south": {"uv": [6, 2, 8, 4], "texture": "#1"},
+				"west": {"uv": [4, 2, 6, 4], "texture": "#1"},
+				"up": {"uv": [4, 2, 2, 0], "texture": "#1"},
+				"down": {"uv": [6, 0, 4, 2], "texture": "#1"}
+			},
+			"to": [14, 17, 14],
+			"from": [2, 5, 2],
+			"rotation": {"angle": 0, "axis": "y", "origin": [-4, -31, -4]}
+		},
+		{
+			"faces": {
+				"north": {"uv": [10, 2, 12, 4], "texture": "#1"},
+				"east": {"uv": [8, 2, 10, 4], "texture": "#1"},
+				"south": {"uv": [14, 2, 16, 4], "texture": "#1"},
+				"west": {"uv": [12, 2, 14, 4], "texture": "#1"},
+				"up": {"uv": [12, 2, 10, 0], "texture": "#1"},
+				"down": {"uv": [14, 0, 12, 2], "texture": "#1"}
+			},
+			"to": [14.75, 17.75, 14.75],
+			"from": [1.25, 4.25, 1.25],
+			"rotation": {"angle": 0, "axis": "y", "origin": [-29.6, -31, -4]}
+		},
+		{
+			"faces": {
+				"north": {"uv": [2, 2, 4, 4], "texture": "#2"},
+				"east": {"uv": [0, 2, 2, 4], "texture": "#2"},
+				"south": {"uv": [6, 2, 8, 4], "texture": "#2"},
+				"west": {"uv": [4, 2, 6, 4], "texture": "#2"},
+				"up": {"uv": [4, 2, 2, 0], "texture": "#2"},
+				"down": {"uv": [6, 0, 4, 2], "texture": "#2"}
+			},
+			"to": [14, 17, 14],
+			"from": [2, 5, 2],
+			"rotation": {"angle": 0, "axis": "y", "origin": [-29.6, -31, -4]}
+		},
+		{
+			"faces": {
+				"north": {"uv": [10, 2, 12, 4], "texture": "#2"},
+				"east": {"uv": [8, 2, 10, 4], "texture": "#2"},
+				"south": {"uv": [14, 2, 16, 4], "texture": "#2"},
+				"west": {"uv": [12, 2, 14, 4], "texture": "#2"},
+				"up": {"uv": [12, 2, 10, 0], "texture": "#2"},
+				"down": {"uv": [14, 0, 12, 2], "texture": "#2"}
+			},
+			"to": [14.75, 17.75, 14.75],
+			"from": [1.25, 4.25, 1.25],
+			"rotation": {"angle": 0, "axis": "y", "origin": [-4, -31, -4]}
+		}
+	],
+	"display": {
+		"head": {
+			"translation": [0, -3.2, 0],
+			"scale": [1, 1, 1],
+			"rotation": [0, 0, 0]
+		}
+	}
+}

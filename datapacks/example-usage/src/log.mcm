@@ -1,0 +1,129 @@
+#> log SETNAME <json text component>
+
+#> log info|warning|error|function text|json|data ...
+#> log info|warning|error|function text <any characters here will print as is>
+
+#> log info|warning|error|function json <json text component>
+
+#> log info|warning|error|function data storage|entity|block ...
+#> log info|warning|error|function data storage <storage accessor> <path>
+
+#> log info|warning|error|function data entity <entity selector> <path>
+#> log info|warning|error|function data block <position> <path>
+
+macro log {
+	<%%
+		if (!config.temp) { config.temp = {} }
+		if (!config.temp.log) {
+			config.temp.log = {}
+			config.temp.log.prefix = {"text":"LOG","color":"dark_gray"}
+		}
+
+		let log_type = args[0].content
+		let data_type = args[1].content
+
+		let log_json = ["",config.temp.log.prefix,{"text":" | ","color":"white"}]
+
+		switch (log_type) {
+			case "info":
+				log_json.push({"text":"info","color":"aqua"})
+				break
+
+			case "warning":
+				log_json.push({"text":"warn","color":"gold"})
+				break
+
+			case "error":
+				log_json.push({"text":"error","color":"red"})
+				break
+
+			case "function":
+				log_json.push({"text":`${meta.func.namespace}:${meta.func._path}`,"color":"yellow"})
+				break
+
+			case "SETNAME":
+				config.temp.log.prefix = JSON.parse(args.slice(1).map(v => v.content).join(' '))
+				return
+
+			default:
+				throw new Error(`[LOG MACRO]: Invalid log type '${log_type}'`)
+				break
+		}
+		log_json.push({"text":" » ","color":"dark_gray"})
+
+		switch (data_type) {
+			case "text":
+				let text = args.slice(2).map(v => v.content).join(' ')
+				log_json.push({"text":text})
+				break
+
+			case "json":
+				let json_text = args.slice(2).map(v => v.content).join(' ')
+				log_json.push(JSON.parse(json_text))
+				break
+
+			case "score":
+				let [name, obj] = args.slice(2).map(v => v.content)
+				log_json.push([
+						{"text":`${name}`,"color":"green"},
+						{"text":":","color":"gray"},
+						{"text":`${obj}`,"color":"dark_green"},
+						{"text":" = ","color":"gray"},
+						{"score":{"name":name,"objective":obj},"color":"yellow"}
+					])
+				break
+
+			case "data":
+				let _data_type = args[2].content
+				let selector, path, storage, pos
+				switch (_data_type) {
+					case "storage":
+						[storage, path] = args.slice(3).map(v => v.content)
+						log_json.push([
+							{"text":`${storage}`,"color":"light_purple"},
+							{"text":":","color":"gray"},
+							{"text":`${path}`,"color":"dark_purple"},
+							{"text":" = ","color":"gray"},
+							{"storage":storage,"nbt":path,"color":"aqua"}
+						])
+						break
+
+					case "entity":
+						[selector, path] = args.slice(3).map(v => v.content)
+						log_json.push([
+							{"text":`${selector}`,"color":"aqua"},
+							{"text":":","color":"gray"},
+							{"text":`${path}`,"color":"dark_aqua"},
+							{"text":" = ","color":"gray"},
+							{"entity":selector,"nbt":path,"color":"light_purple"}
+						])
+						break
+
+					case "block":
+						pos = args.slice(3,6).map(v => v.content).join(' ')
+						path = args.slice(6).map(v => v.content).join(' ')
+						log_json.push([
+							{"text":`${pos}`,"color":"yellow"},
+							{"text":":","color":"gray"},
+							{"text":`${path}`,"color":"gold"},
+							{"text":" = ","color":"gray"},
+							{"block":pos,"nbt":path,"color":"light_purple"}
+						])
+						break
+
+					default:
+						throw new Error(`[LOG MACRO]: Invalid/Unknown data type '${_data_type}'`)
+						break
+				}
+				break
+
+			default:
+				throw new Error(`[LOG MACRO]: Invalid/Unknown data type '${data_type}'`)
+				break
+		}
+
+		emit(`tellraw @a ${JSON.stringify(log_json)}`)
+	%%>
+}
+
+# [{"text":"hello!"}]

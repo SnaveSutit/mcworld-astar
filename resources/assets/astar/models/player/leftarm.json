@@ -1,0 +1,68 @@
+{
+	"__credit": "Generated using Animated Java (https://animated-java.dev/)",
+	"textures": {
+		"1": "astar:skins/steve",
+		"2": "astar:skins/alex"
+	},
+	"elements": [
+		{
+			"faces": {
+				"north": {"uv": [9, 13, 10, 16], "texture": "#1"},
+				"east": {"uv": [8, 13, 9, 16], "texture": "#1"},
+				"south": {"uv": [11, 13, 12, 16], "texture": "#1"},
+				"west": {"uv": [10, 13, 11, 16], "texture": "#1"},
+				"up": {"uv": [10, 13, 9, 12], "texture": "#1"},
+				"down": {"uv": [11, 12, 10, 13], "texture": "#1"}
+			},
+			"to": [9.5, 8, 11],
+			"from": [3.5, -10, 5],
+			"rotation": {"angle": 0, "axis": "y", "origin": [3.5, -28, -4]}
+		},
+		{
+			"faces": {
+				"north": {"uv": [13, 13, 14, 16], "texture": "#1"},
+				"east": {"uv": [12, 13, 13, 16], "texture": "#1"},
+				"south": {"uv": [15, 13, 16, 16], "texture": "#1"},
+				"west": {"uv": [14, 13, 15, 16], "texture": "#1"},
+				"up": {"uv": [14, 13, 13, 12], "texture": "#1"},
+				"down": {"uv": [15, 12, 14, 13], "texture": "#1"}
+			},
+			"to": [9.87501, 8.37501, 11.37501],
+			"from": [3.12499, -10.37501, 4.62499],
+			"rotation": {"angle": 0, "axis": "y", "origin": [3.5, -28, -4]}
+		},
+		{
+			"faces": {
+				"north": {"uv": [9, 13, 9.75, 16], "texture": "#2"},
+				"east": {"uv": [8, 13, 9, 16], "texture": "#2"},
+				"south": {"uv": [10.5, 13, 11.5, 16], "texture": "#2"},
+				"west": {"uv": [9.75, 13, 10.5, 16], "texture": "#2"},
+				"up": {"uv": [9.75, 13, 9, 12], "texture": "#2"},
+				"down": {"uv": [10.5, 12, 9.75, 13], "texture": "#2"}
+			},
+			"to": [9.5, 8, 11],
+			"from": [5.1, -10, 5],
+			"rotation": {"angle": 0, "axis": "y", "origin": [-22.1, -28, -4]}
+		},
+		{
+			"faces": {
+				"north": {"uv": [13, 13, 14, 16], "texture": "#2"},
+				"east": {"uv": [12, 13, 13, 16], "texture": "#2"},
+				"south": {"uv": [15, 13, 16, 16], "texture": "#2"},
+				"west": {"uv": [14, 13, 15, 16], "texture": "#2"},
+				"up": {"uv": [14, 13, 13, 12], "texture": "#2"},
+				"down": {"uv": [15, 12, 14, 13], "texture": "#2"}
+			},
+			"to": [9.87501, 8.37501, 11.37501],
+			"from": [4.72499, -10.37501, 4.62499],
+			"rotation": {"angle": 0, "axis": "y", "origin": [3.5, -28, -4]}
+		}
+	],
+	"display": {
+		"head": {
+			"translation": [0, -3.2, 0],
+			"scale": [1, 1, 1],
+			"rotation": [0, 0, 0]
+		}
+	}
+}

@@ -1,0 +1,29 @@
+macro rng{
+	load{
+		scoreboard objectives add rng dummy
+		scoreboard players set m rng <%2**31-1%>
+		scoreboard players set a rng 1103515245
+		scoreboard players set c rng 12345
+		scoreboard players set #100000 rng 100000
+	}
+	!IF("$$0"==="seed"){
+		scoreboard players set state rng $$1
+	}
+	!IF("$$0"==="range"){
+		load{
+			scoreboard players set #<%$$2-$$1%> rng <%$$2-$$1%>
+		}
+		macro rng next $$3 $$4
+		scoreboard players operation $$3 $$4 /= #100000 rng
+		scoreboard players operation $$3 $$4 %= #<%$$2-$$1%> rng
+		scoreboard players add $$3 $$4 $$1
+	}
+	!IF("$$0"==="next"){
+		scoreboard players operation temp0 rng = state rng 
+		scoreboard players operation temp0 rng *= a rng
+		scoreboard players operation temp0 rng += c rng
+		scoreboard players operation temp0 rng %= m rng
+		scoreboard players operation state rng = temp0 rng
+		scoreboard players operation $$1 $$2 = temp0 rng
+	}
+}

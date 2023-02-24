@@ -1,0 +1,8 @@
+{
+	"__credit": "Generated using Animated Java (https://animated-java.dev/)",
+	"parent": "astar:player/rightarm",
+	"textures": {
+		"1": "astar:skins/fetchbot",
+		"2": "astar:transparent"
+	}
+}
