@@ -22,7 +22,6 @@ End conditions include:
 - Maximum closed nodes reached
 - Path is cancelled using the cancellation function
 
-
 In this example red concrete is 2x more annoying to path over for A*, so if avoids it if it can. This gives us the nice effect of the NPCs mostly sticking to the center of the maze's walkways
 
 All of the marker entities you see (which are being made visible by a mod called Visible Barriers) that aren't part of the solving process are either the last calculated path - which is a debug toggle - or the target entities I'm using to randomly select a destination for each NPC
