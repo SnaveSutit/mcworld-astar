@@ -28,6 +28,8 @@ In the provided example pack red concrete is weighted 2x. so it avoids it if it 
 
 https://github.com/SnaveSutit/mcworld-astar/assets/28514936/58ce3db5-9d0f-4f6c-bbfa-2753ff95a974
 
+https://github.com/SnaveSutit/mcworld-astar/assets/28514936/9385ede6-57ae-4c59-bc04-609dbf0cc534
+
 All of the marker entities you see (which are being made visible by a mod called Visible Barriers) that aren't part of the solving process are either the last calculated path - which is a debug toggle - or the target entities I'm using to randomly select a destination for each NPC
 
 The NPC AI runs on a simple state machine with only a few states:
