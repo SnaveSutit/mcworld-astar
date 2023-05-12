@@ -18,25 +18,25 @@ module.exports = {
 		postBuild: build => {},
 	},
 	mc: {
-		dev: true,
+		dev: false,
 		header: '#built using mc-build (https://github.com/mc-build/mc-build)',
 		internalScoreboard: 'aS.i',
 		generatedDirectory: 'zzz',
 		rootNamespace: null,
 		astar: {
-			developer_mode: true,
+			developer_mode: false,
 			options: {
 				allow_straight_movement: true,
 				allow_diagonal_movement: true,
 				allow_three_dimensional_pathing: false,
 			},
 			debug: {
-				verbose: true,
-				particles: true,
-				functions: true,
-				path_statistics: true,
+				verbose: false,
+				particles: false,
+				functions: false,
+				path_statistics: false,
 				title_status: false,
-				display_previous_path: true,
+				display_previous_path: false,
 			},
 			internal: {
 				error: {

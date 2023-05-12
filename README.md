@@ -1,5 +1,7 @@
 # A* Pathfinding Data Pack Development World
 
+## About this data pack.
+
 A* is async, and highly configurable:
 Configurable aspects include:
 - block weights
@@ -33,3 +35,15 @@ The NPC AI runs on a simple state machine with only a few states:
 - STARTING_WALK_CYCLE
 - ENDING_WALK_CYCLE
 - WAITING_FOR_ANIM
+
+## How to use this data pack library.
+You can either extract the MCB data pack directly from the `datapacks` folder. Or you can build the data pack using the instructions below.
+
+## Building the data pack.
+You'll need to have `node`, `yarn`, and `mc-build` installed.
+
+Make sure you configure `datapacks/Astar/config.js` to your needs before running the package script.
+
+Run `yarn install`, then `yarn package` to build the data pack.
+
+The packaged data pack will be put exported as `dist/datapacks/Astar.zip`
