@@ -6,7 +6,7 @@ import ./log.mcm
 			function single {
 				data modify storage astar:ram new.path.start set from entity @e[type=glow_item_frame,limit=1,sort=random,tag=aS.debug.start] Pos
 				data modify storage astar:ram new.path.end set from entity @e[type=glow_item_frame,limit=1,sort=random,tag=aS.debug.end] Pos
-				data modify storage astar:ram new.path.max_closed_nodes set value 100
+				data modify storage astar:ram new.path.max_closed_nodes set value 1000
 				function astar:queue_path
 			}
 
@@ -119,45 +119,6 @@ blocks weighted8x {
 blocks weighted16x {
 }
 
-predicate select_lowest_f_cost {
-	"condition": "minecraft:value_check",
-	"value": {
-		"type": "minecraft:score",
-		"target": "this",
-		"score": "aS.node.f"
-	},
-	"range": {
-		"min": 0,
-		"max": {
-			"type": "minecraft:score",
-			"target": {
-				"type": "minecraft:fixed",
-				"name": "#aS.min_f"
-			},
-			"score": "aS.v"
-		}
-	}
-}
-
-predicate select_lowest_h_cost {
-	"condition": "minecraft:value_check",
-	"value": {
-		"type": "minecraft:score",
-		"target": "this",
-		"score": "aS.node.h"
-	},
-	"range": {
-		"min": 0,
-		"max": {
-			"type": "minecraft:score",
-			"target": {
-				"type": "minecraft:fixed",
-				"name": "#aS.min_h"
-			},
-			"score": "aS.v"
-		}
-	}
-}
 
 function queue_path {
 	# Add 1 to the last path ID and store that result in this entity's aS.v and astar:ram new.path.id
@@ -356,6 +317,11 @@ dir internal {
 			scoreboard players operation @s aS.node.f = @s aS.node.g
 			scoreboard players operation @s aS.node.f += @s aS.node.h
 
+			#> Store minimum costs in global variables
+			scoreboard players operation #aS.global_min_f aS.v < @s aS.node.f
+			scoreboard players operation #aS.global_min_h aS.v < @s aS.node.h
+			# scoreboard players operation #aS.global_min_g aS.v < @s aS.node.g
+
 			# Path Statistics
 			!IF(config.astar.debug.path_statistics){
 				scoreboard players add #aS.calculated_nodes aS.v 1
@@ -394,6 +360,10 @@ dir internal {
 				scoreboard players set #aS.f_cost_breaks aS.v 0
 				scoreboard players set #aS.h_cost_breaks aS.v 0
 				scoreboard players set #aS.random_breaks aS.v 0
+
+				scoreboard players set #aS.global_min_f aS.v 2147483647
+				scoreboard players set #aS.global_min_g aS.v 2147483647
+				scoreboard players set #aS.global_min_h aS.v 2147483647
 			}
 			!IF(config.astar.debug.display_previous_path) {
 				kill @e[type=marker,tag=aS.path]
@@ -479,6 +449,15 @@ dir internal {
 			# Close this node
 			tag @s remove aS.next
 			tag @s add aS.closed
+			execute if score @s aS.node.f = #aS.global_min_f aS.v run {
+				say e f
+				scoreboard players operation #aS.global_min_f aS.v < @e[type=marker,tag=aS.node,tag=!aS.closed,distance=0.1..] aS.node.f
+			}
+			execute if score @s aS.node.h = #aS.global_min_h aS.v run {
+				say e h
+				scoreboard players operation #aS.global_min_h aS.v < @e[type=marker,tag=aS.node,tag=!aS.closed,distance=0.1..] aS.node.h
+			}
+
 			# Add 1 to closed nodes
 			scoreboard players add #aS.closed_nodes aS.v 1
 
@@ -527,6 +506,11 @@ dir internal {
 						# Update this node's f cost
 						scoreboard players operation @s aS.node.f = @s aS.node.h
 						scoreboard players operation @s aS.node.f += @s aS.node.g
+
+						#> Store minimum costs in global variables
+						scoreboard players operation #aS.global_min_f aS.v < @s aS.node.f
+						scoreboard players operation #aS.global_min_h aS.v < @s aS.node.h
+						# scoreboard players operation #aS.global_min_g aS.v < @s aS.node.g
 					}
 				}
 			# If this node has not been summoned
@@ -570,6 +554,7 @@ dir internal {
 				scoreboard players operation #aS.move_cost aS.v = $astar.straight_movement_cost aS.v
 				LOOP(3,x){
 					LOOP(3,z){
+						# FIXME What da hail is this ternary??
 						!IF(x-1 != 0 ? !(z-1 != 0) : z-1 != 0){
 							(
 								execute
@@ -632,14 +617,15 @@ dir internal {
 			# Solve for lowest F cost
 			scoreboard players set #aS.min_f.count aS.v 0
 			scoreboard players set #aS.min_f aS.v 2147483647
-			scoreboard players operation #aS.min_f aS.v < @e[type=marker,tag=aS.node,tag=!aS.closed,distance=0.1..] aS.node.f
+			# scoreboard players operation #aS.min_f aS.v < @e[type=marker,tag=aS.node,tag=!aS.closed,distance=0.1..] aS.node.f
 			# FIXME Double check that the predicate is faster in this instance
-			execute as @e[type=marker,tag=aS.node,tag=!aS.closed,distance=0.1..,predicate=astar:select_lowest_f_cost] run{
+			execute as @e[type=marker,tag=aS.node,tag=!aS.closed,distance=0.1..] if score @s aS.node.f = #aS.global_min_f aS.v run {
 				scoreboard players add #aS.min_f.count aS.v 1
 				tag @s add aS.min_f
 			}
 			# If there is only one node that has the lowest F cost
 			execute (if score #aS.min_f.count aS.v matches 1 as @e[type=marker,tag=aS.min_f,distance=0.1..,limit=1]) {
+				say 1.. f
 				# Debug statistics
 				!IF(config.astar.debug.path_statistics){
 					scoreboard players add #aS.f_cost_breaks aS.v 1
@@ -649,6 +635,7 @@ dir internal {
 				tag @s remove aS.min_f
 			# If there is more than 1 node with the lowest F cost we select between them based on lowest H cost
 			} else execute (if score #aS.min_f.count aS.v matches 2..) {
+				say 2.. f
 				function astar:internal/search/solve_lowest_h_cost
 			} else {
 				!IF(config.astar.developer_mode){
@@ -661,10 +648,10 @@ dir internal {
 		function solve_lowest_h_cost {
 			# Solve for lowest H cost
 			scoreboard players set #aS.min_h.count aS.v 0
-			scoreboard players set #aS.min_h aS.v 2147483647
-			scoreboard players operation #aS.min_h aS.v < @e[type=marker,tag=aS.min_f,tag=!aS.closed,distance=0.1..] aS.node.h
+			# scoreboard players set #aS.min_h aS.v 2147483647
+			# scoreboard players operation #aS.min_h aS.v < @e[type=marker,tag=aS.min_f,tag=!aS.closed,distance=0.1..] aS.node.h
 			# FIXME Double check that the predicate is faster in this instance
-			execute as @e[type=marker,tag=aS.min_f,tag=!aS.closed,distance=0.1..,predicate=astar:select_lowest_h_cost] run{
+			execute as @e[type=marker,tag=aS.min_f,tag=!aS.closed,distance=0.1..] if score @s aS.node.h = #aS.global_min_h aS.v run{
 				scoreboard players add #aS.min_h.count aS.v 1
 				tag @s add aS.min_h
 			}
@@ -672,6 +659,7 @@ dir internal {
 			tag @e[type=marker,tag=aS.node,distance=0.1..] remove aS.min_f
 			# If there is only one node with lowest H cost under F cost
 			execute (if score #aS.min_h.count aS.v matches 1 as @e[type=marker,tag=aS.min_h,distance=0.1..,limit=1]) {
+				say 1 h
 				# Debug statistics
 				!IF(config.astar.debug.path_statistics){
 					scoreboard players add #aS.h_cost_breaks aS.v 1
@@ -681,6 +669,7 @@ dir internal {
 				tag @s remove aS.min_h
 			# If there is more than one node with the minimum found H cost
 			} else execute (if score #aS.min_h.count aS.v matches 2..) {
+				say 2.. h
 				# Take the first arbitrarally chosen node with min H cost
 				execute as @e[type=marker,tag=aS.min_h,distance=0.1..,limit=1] run tag @s add aS.next
 				# Remove the left over tags from all nodes
@@ -700,10 +689,10 @@ dir internal {
 		function solve_lowest_h_cost_intermediate {
 			# Solve for lowest H cost
 			scoreboard players set #aS.min_h.count aS.v 0
-			scoreboard players set #aS.min_h aS.v 2147483647
-			scoreboard players operation #aS.min_h aS.v < @e[type=marker,tag=aS.node,tag=!aS.start,distance=0.1..] aS.node.h
+			# scoreboard players set #aS.min_h aS.v 2147483647
+			# scoreboard players operation #aS.min_h aS.v < @e[type=marker,tag=aS.node,tag=!aS.start,distance=0.1..] aS.node.h
 			# FIXME Double check that the predicate is faster in this instance
-			execute as @e[type=marker,tag=aS.node,tag=!aS.start,distance=0.1..,predicate=astar:select_lowest_h_cost] run {
+			execute as @e[type=marker,tag=aS.node,tag=!aS.start,distance=0.1..] if score @s aS.node.h = #aS.global_min_h aS.v run {
 				scoreboard players add #aS.min_h.count aS.v 1
 				tag @s add aS.min_h
 			}
