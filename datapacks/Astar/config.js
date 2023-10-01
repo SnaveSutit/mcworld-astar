@@ -24,19 +24,19 @@ module.exports = {
 		generatedDirectory: 'zzz',
 		rootNamespace: null,
 		astar: {
-			developer_mode: true,
+			developer_mode: false,
 			options: {
 				allow_straight_movement: true,
 				allow_diagonal_movement: true,
 				allow_three_dimensional_pathing: false,
 			},
 			debug: {
-				verbose: true,
-				particles: true,
-				functions: true,
-				path_statistics: true,
+				verbose: false,
+				particles: false,
+				functions: false,
+				path_statistics: false,
 				title_status: false,
-				display_previous_path: true,
+				display_previous_path: false,
 			},
 			internal: {
 				error: {
