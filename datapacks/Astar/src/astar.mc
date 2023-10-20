@@ -436,9 +436,9 @@ dir internal {
 				# Calculate the start node
 				function astar:internal/node/calculate
 				# Make sure the start node is the most preferable when returning
-				scoreboard players set @s aS.node.g 0
-				scoreboard players set @s aS.node.h 0
-				scoreboard players set @s aS.node.f 0
+				# scoreboard players set @s aS.node.g 0
+				# scoreboard players set @s aS.node.h 0
+				# scoreboard players set @s aS.node.f 0
 				# Start the pathfinding
 				function astar:internal/search/async/start_next_tick
 			}
@@ -479,6 +479,7 @@ dir internal {
 			# Close this node
 			tag @s remove aS.next
 			tag @s add aS.closed
+			scoreboard players reset @s aS.node.f
 			# Add 1 to closed nodes
 			scoreboard players add #aS.closed_nodes aS.v 1
 
