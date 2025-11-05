@@ -1,0 +1,129 @@
+template create {
+	with name:word {
+		scoreboard objectives add <%name%> dummy
+	}
+
+	with name:word criteria:word {
+		scoreboard objectives add <%name%> <%criteria%>
+	}
+
+	with name:word criteria:word display_name:raw {
+		scoreboard objectives add <%name%> <%criteria%> <%display_name%>
+	}
+}
+
+template delete {
+	with name:word {
+		scoreboard objectives remove <%name%>
+	}
+}
+
+template display {
+	with slot:word {
+		scoreboard objectives setdisplay <%slot%>
+	}
+
+	with name:word slot:word {
+		scoreboard objectives setdisplay <%slot%> <%name%>
+	}
+}
+
+template set {
+	# set <name> <objective>
+	# set <name> <objective> <value>
+	# set <name> <objective> run <command>
+	# set <name> <objective> from block <x> <y> <z> <path> [scale]
+	# set <name> <objective> from entity <entity> <path> [scale]
+	# set <name> <objective> from storage <storage> <path> [scale]
+
+	# If no value is provided, set the score to the numeric value of the name.
+	# The name must contain a number to be valid. E.g. "42", "score_100", "5kg"
+	with name:word objective:word {
+		<%%
+			const numberString = /-?\d+/.exec(name)
+			if (isNaN(parseInt(numberString))) {
+				throw new Error(`[score.set]: The provided name '${name}' does not contain a valid number to set the score to.`)
+			}
+			emit(`scoreboard players set ${name} ${objective} ${parseInt(numberString)}`)
+		%%>
+	}
+
+	with name:word objective:word value:int {
+		scoreboard players set <%name%> <%objective%> <%value%>
+	}
+
+	with name:word objective:word run:literal command:raw {
+		<%%
+			emit.mcb(`execute store result score ${name} ${objective} run ${command}`)
+		%%>
+	}
+
+	with name:word objective:word from:literal block:literal rest:raw {
+		execute store result score <%name%> <%objective%> run data get block <%rest%>
+	}
+
+	with name:word objective:word from:literal entity:literal rest:raw {
+		execute store result score <%name%> <%objective%> run data get entity <%rest%>
+	}
+
+	with name:word objective:word from:literal storage:literal rest:raw {
+		execute store result score <%name%> <%objective%> run data get storage <%rest%>
+	}
+}
+
+template get {
+	with name:word objective:word {
+		scoreboard players get <%name%> <%objective%>
+	}
+}
+
+template reset {
+	with name:word objective:word {
+		scoreboard players reset <%name%> <%objective%>
+	}
+}
+
+template add {
+	with name:word objective:word value:word {
+		scoreboard players add <%name%> <%objective%> <%value%>
+	}
+}
+
+template sub {
+	with name:word objective:word value:word {
+		scoreboard players remove <%name%> <%objective%> <%value%>
+	}
+}
+
+template abs {
+	load {
+		template set #-1 <%config.internalScoreboardName%>
+	}
+	with name:word objective:word {
+		execute if score <%name%> <%objective%> matches ..-1 run \
+			template op <%name%> <%objective%> *= #-1 <%config.internalScoreboardName%>
+	}
+}
+
+# Operations
+template op {
+	# Implied secondary objective
+	# op <name1> <objective1> <operation> <name2>
+	with name1:word objective:word operation:word name2:word {
+		IF (!isNaN(parseInt(name2))) {
+			load {
+				scoreboard players set <%name2%> <%config.internalScoreboardName%> <%name2%>
+			}
+			scoreboard players operation <%name1%> <%objective%> <%operation%> <%name2%> <%config.internalScoreboardName%>
+		} ELSE {
+			scoreboard players operation <%name1%> <%objective%> <%operation%> <%name2%> <%objective%>
+		}
+	}
+
+	# Explicit secondary objective
+	# op <name1> <objective1> <operation> <name2> <objective2>
+	with name1:word objective1:word operation:word name2:word objective2:word {
+		scoreboard players operation <%name1%> <%objective1%> <%operation%> <%name2%> <%objective2%>
+	}
+}
+
