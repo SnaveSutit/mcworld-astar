@@ -2,7 +2,7 @@ import ./score.mcbt
 
 <%%
 	global.yellow_concrete_cost = 5
-	global.red_concrete_cost = 10 * 8 // 4x slower than normal orthogonal movement
+	global.red_concrete_cost = 10 * 4 // 4x slower than normal orthogonal movement
 %%>
 
 function load minecraft:load {
@@ -49,8 +49,9 @@ function load minecraft:load {
 }
 
 function reset {
+	set #astar.last_path_id astar.v -1
 	set #astar.last_node_id astar.v -1
-	set #astar.total_time astar.v 0
+	set #astar.total_ms astar.v 0
 	set #astar.nodes_calculated astar.v 0
 	set #astar.nodes_closed astar.v 0
 	op #astar.state astar.v = #astar.state.idle
@@ -63,9 +64,9 @@ function clear_queue {
 }
 
 function queue_path {
-	#ARGS: { id: int, from: Vector3Int, to: Vector3Int }
+	#ARGS: { id: int, from: {x: int, y: int, z: int}, to: {x: int, y: int, z: int}, max_ms?: int }
 
-	$data modify storage astar:data path_queue set value { id: $(id), from: $(from), to: $(to) }
+	$data modify storage astar:data path_queue set value { id: $(id), from: $(from), to: $(to), max_ms: $(max_ms) }
 }
 
 #ARGS: {nodes: [{x: int, y: int, z: int}, ...], queuer: UUID, path_id: int}
@@ -74,7 +75,7 @@ tag function on_path_found {
 
 function queue_path_from_storage {
 	# Expected Inputs
-	#storage astar:input path: { from: Vector3Int, to: Vector3Int }
+	#storage astar:input path: { from: {x: int, y: int, z: int}, to: {x: int, y: int, z: int}, max_ms?: int }
 
 	execute store result storage astar:input path.id int 1 run add #astar.last_path_id astar.v 1
 
@@ -85,22 +86,62 @@ function queue_path_from_storage {
 	data remove storage astar:input path
 
 	IF (config.verboseLogging) {
+		set #queue_length astar.v from storage astar:data path_queue
 		tellraw @a [ \
 			'', \
 			[{ text: '[', color: gray }, { text:'A*',color: green}, ']'], \
 			{ text: ' Queued Path', color: white }, \
+			{ text: ' QueueLength=', color: yellow }, { score: { name: '#queue_length', objective: astar.v }}, \
 			{ text: ' ID=', color: yellow }, { score: { name: '#astar.last_path_id', objective: astar.v }}, \
 			{ text: ' From=', color: light_purple }, \
 			'[', \
-			{ storage: 'astar:data', nbt:'path_queue[-1].from[0]', color: red }, ' ', \
-			{ storage: 'astar:data', nbt:'path_queue[-1].from[1]', color: green }, ' ', \
-			{ storage: 'astar:data', nbt:'path_queue[-1].from[2]', color: blue }, \
+			{ storage: 'astar:data', nbt:'path_queue[-1].from.x', color: red }, ' ', \
+			{ storage: 'astar:data', nbt:'path_queue[-1].from.y', color: green }, ' ', \
+			{ storage: 'astar:data', nbt:'path_queue[-1].from.z', color: blue }, \
 			']', \
 			{ text: ' To=', color: light_purple }, \
 			'[', \
-			{ storage: 'astar:data', nbt:'path_queue[-1].to[0]', color: red }, ' ', \
-			{ storage: 'astar:data', nbt:'path_queue[-1].to[1]', color: green }, ' ', \
-			{ storage: 'astar:data', nbt:'path_queue[-1].to[2]', color: blue }, \
+			{ storage: 'astar:data', nbt:'path_queue[-1].to.x', color: red }, ' ', \
+			{ storage: 'astar:data', nbt:'path_queue[-1].to.y', color: green }, ' ', \
+			{ storage: 'astar:data', nbt:'path_queue[-1].to.z', color: blue }, \
+			']' \
+		]
+	}
+
+	schedule function astar:process_queue 1t replace
+}
+
+function queue_priority_path_from_storage {
+		# Expected Inputs
+	#storage astar:input path: { from: {x: int, y: int, z: int}, to: {x: int, y: int, z: int}, max_ms?: int }
+
+	execute store result storage astar:input path.id int 1 run add #astar.last_path_id astar.v 1
+
+	function gu:get_entity_uuid_string
+	data modify storage astar:input path.queuer set from storage gu:uuid out
+
+	data modify storage astar:data path_queue prepend from storage astar:input path
+	data remove storage astar:input path
+
+	IF (config.verboseLogging) {
+		set #queue_length astar.v from storage astar:data path_queue
+		tellraw @a [ \
+			'', \
+			[{ text: '[', color: gray }, { text:'A*',color: green}, ']'], \
+			{ text: ' Queued Path', color: white }, \
+			{ text: ' QueueLength=', color: yellow }, { score: { name: '#queue_length', objective: astar.v }}, \
+			{ text: ' ID=', color: yellow }, { score: { name: '#astar.last_path_id', objective: astar.v }}, \
+			{ text: ' From=', color: light_purple }, \
+			'[', \
+			{ storage: 'astar:data', nbt:'path_queue[-1].from.x', color: red }, ' ', \
+			{ storage: 'astar:data', nbt:'path_queue[-1].from.y', color: green }, ' ', \
+			{ storage: 'astar:data', nbt:'path_queue[-1].from.z', color: blue }, \
+			']', \
+			{ text: ' To=', color: light_purple }, \
+			'[', \
+			{ storage: 'astar:data', nbt:'path_queue[-1].to.x', color: red }, ' ', \
+			{ storage: 'astar:data', nbt:'path_queue[-1].to.y', color: green }, ' ', \
+			{ storage: 'astar:data', nbt:'path_queue[-1].to.z', color: blue }, \
 			']' \
 		]
 	}
@@ -117,7 +158,7 @@ function process_queue {
 
 function search {
 	# Expected Inputs
-	#storage astar:data path_queue[0]: { id: int, from: Vector3Int, to: Vector3Int }
+	#storage astar:data path_queue[0]: { id: int, from: {x: int, y: int, z: int}, to: {x: int, y: int, z: int}, max_ms?: int }
 
 	IF (config.nodeDebug) {
 		kill @e[type=minecraft:text_display,tag=astar.debug.node_display]
@@ -128,7 +169,7 @@ function search {
 
 	# Reset path variables
 	set #astar.last_node_id astar.v -1
-	set #astar.total_time astar.v 0
+	set #astar.total_ms astar.v 0
 	set #astar.nodes_calculated astar.v 0
 	set #astar.nodes_closed astar.v 0
 
@@ -139,19 +180,22 @@ function search {
 	set #astar.path.id astar.v from storage astar:data path_queue[0].id
 	data modify storage astar:temp path.queuer set from storage astar:data path_queue[0].queuer
 
+	set #astar.max_ms astar.v from storage astar:data path_queue[0].max_ms
+	execute if score #astar.max_ms astar.v matches 0 run set #astar.max_ms astar.v <%2**31-1%>
+
 	execute store result storage astar:temp path.from.x int 1 run \
-		set #astar.path.from.x astar.v from storage astar:data path_queue[0].from[0]
+		set #astar.path.from.x astar.v from storage astar:data path_queue[0].from.x
 	execute store result storage astar:temp path.from.y int 1 run \
-		set #astar.path.from.y astar.v from storage astar:data path_queue[0].from[1]
+		set #astar.path.from.y astar.v from storage astar:data path_queue[0].from.y
 	execute store result storage astar:temp path.from.z int 1 run \
-		set #astar.path.from.z astar.v from storage astar:data path_queue[0].from[2]
+		set #astar.path.from.z astar.v from storage astar:data path_queue[0].from.z
 
 	execute store result storage astar:temp path.to.x int 1 run \
-		set #astar.path.to.x astar.v from storage astar:data path_queue[0].to[0]
+		set #astar.path.to.x astar.v from storage astar:data path_queue[0].to.x
 	execute store result storage astar:temp path.to.y int 1 run \
-		set #astar.path.to.y astar.v from storage astar:data path_queue[0].to[1]
+		set #astar.path.to.y astar.v from storage astar:data path_queue[0].to.y
 	execute store result storage astar:temp path.to.z int 1 run \
-		set #astar.path.to.z astar.v from storage astar:data path_queue[0].to[2]
+		set #astar.path.to.z astar.v from storage astar:data path_queue[0].to.z
 
 	data remove storage astar:data path_queue[0]
 
@@ -190,7 +234,7 @@ dir search {
 		IF (!config.stepDebug) {
 			execute if stopwatch astar:tick_time 0.03.. run return run block time_exceeded {
 				execute store result score #time astar.v run stopwatch query astar:tick_time 1000
-				op #astar.total_time astar.v += #time astar.v
+				op #astar.total_ms astar.v += #time astar.v
 				tag @s add astar.next
 				IF (!config.stepDebug) {
 					schedule function astar:search/async_step 1t replace
@@ -208,12 +252,17 @@ dir search {
 		}
 
 		execute \
+			if score #astar.total_ms astar.v >= #astar.max_ms astar.v \
+		run return run \
+			function ./use_best_open_node_as_end
+
+		execute \
 			if score @s astar.node.x = #astar.path.to.x astar.v \
 			if score @s astar.node.y = #astar.path.to.y astar.v \
 			if score @s astar.node.z = #astar.path.to.z astar.v \
 		run return run block reached_target {
 			execute store result score #time astar.v run stopwatch query astar:tick_time 1000
-			op #astar.total_time astar.v += #time astar.v
+			op #astar.total_ms astar.v += #time astar.v
 			tag @s add astar.to_node
 			stopwatch restart astar:tick_time
 			function astar:search/trace
@@ -331,12 +380,14 @@ dir search {
 			}
 			# If no nodes are remaining after h cost tiebreaker, path not found
 			execute if score #astar.min_h.count astar.v matches 0 run block no_min_h {
-				say No valid nodes remaining after h cost tiebreaker, path not found
+				say No valid nodes remaining after h cost tiebreaker.
+				function ./use_best_open_node_as_end
 			}
 		}
 		# If no nodes are remaining in the open set, path not found
 		execute if score #astar.min_f.count astar.v matches 0 run block no_min_f {
-			say No valid nodes remaining, path not found
+			say No valid nodes remaining in open set.
+			function ./use_best_open_node_as_end
 		}
 	}
 
@@ -354,8 +405,9 @@ dir search {
 					{ text: ' Length=', color: blue }, { score: { name: '#path_length', objective: astar.v }}, \
 					{ text: ' Calculated=', color: gold }, { score: { name: '#astar.nodes_calculated', objective: astar.v}}, \
 					{ text: ' Closed=', color: red }, { score: { name: '#astar.nodes_closed', objective: astar.v}}, \
-					{ text: ' SearchTime=', color: aqua }, { score: { name: '#astar.total_time', objective: astar.v }}, 'ms', \
-					{ text: ' TraceTime=', color: aqua }, { score: { name: '#time', objective: astar.v }}, 'ms' \
+					{ text: ' SearchTime=', color: aqua }, { score: { name: '#astar.total_ms', objective: astar.v }}, 'ms', \
+					{ text: ' TraceTime=', color: aqua }, { score: { name: '#time', objective: astar.v }}, 'ms', \
+					{ text: ' Incomplete=', color: red }, { nbt: 'path.incomplete', storage: 'astar:temp' }, \
 				]
 			}
 			kill @e[type=minecraft:marker,tag=astar.node]
@@ -379,8 +431,54 @@ dir search {
 			as @e[type=minecraft:marker,tag=astar.node,distance=0.1..1.5,limit=8] \
 			if score @s astar.node.id = #astar.parent_id astar.v \
 			at @s \
-		run \
+		run return run \
 			function astar:search/trace
+
+		tellraw @a { text: 'MAJOR PATH ERROR: Parent node not found during trace.', color: red }
+		function astar:debug/update_node_text_displays
+	}
+
+	function use_best_open_node_as_end {
+		# Select the node with the lowest h cost
+		set #astar.min_h.count astar.v 0
+		set #astar.min_h astar.v <%2**31-1%>
+		op #astar.min_h astar.v < @e[type=minecraft:marker,tag=astar.node,tag=!astar.from_node] astar.node.h
+		execute \
+			as @e[type=minecraft:marker,tag=astar.node,tag=!astar.from_node] \
+			if score @s astar.node.h = #astar.min_h astar.v \
+		run block tag_min_h {
+			scoreboard players add #astar.min_h.count astar.v 1
+			tag @s add astar.min_h
+		}
+		# If only one node has the min h cost, continue with that node
+		execute \
+			if score #astar.min_h.count astar.v matches 1 \
+			as @e[type=minecraft:marker,tag=astar.min_h,limit=1] \
+			at @s \
+		run return run block one_min_h {
+			tag @s remove astar.min_h
+			tag @s add astar.to_node
+			data modify storage astar:temp path.incomplete set value true
+			stopwatch restart astar:tick_time
+			function ./trace
+		}
+		# If multiple nodes have the same min h cost, choose one arbitrarily
+		execute \
+			if score #astar.min_h.count astar.v matches 2.. \
+			as @e[type=minecraft:marker,tag=astar.min_h,limit=1] \
+			at @s \
+		run return run block many_min_h {
+			tag @e[type=minecraft:marker,tag=astar.node] remove astar.min_h
+			tag @s add astar.to_node
+			data modify storage astar:temp path.incomplete set value true
+			stopwatch restart astar:tick_time
+			function ./trace
+		}
+		# If no nodes are remaining after h cost tiebreaker, path not found
+		execute if score #astar.min_h.count astar.v matches 0 run block no_min_h {
+			tellraw @a { text: 'MAJOR PATH ERROR: No valid closed nodes remaining after h cost tiebreaker while attempting use best open node as end.', color: red }
+			function astar:debug/update_node_text_displays
+		}
 	}
 }
 
@@ -565,11 +663,17 @@ IF (config.dev || config.nodeDebug || config.stepDebug) {
 		function queue_from_debug_entities {
 			data remove storage astar:input path
 
-			execute as @n[type=minecraft:item_frame, tag=astar.debug.from] at @s run \
-				data modify storage astar:input path.from set from entity @s block_pos
+			execute as @n[type=minecraft:item_frame, tag=astar.debug.from] at @s run {
+				data modify storage astar:input path.from.x set from entity @s block_pos[0]
+				data modify storage astar:input path.from.y set from entity @s block_pos[1]
+				data modify storage astar:input path.from.z set from entity @s block_pos[2]
+			}
 
-			execute as @n[type=minecraft:item_frame, tag=astar.debug.to] at @s run \
-				data modify storage astar:input path.to set from entity @s block_pos
+			execute as @n[type=minecraft:item_frame, tag=astar.debug.to] at @s run {
+				data modify storage astar:input path.to.x set from entity @s block_pos[0]
+				data modify storage astar:input path.to.y set from entity @s block_pos[1]
+				data modify storage astar:input path.to.z set from entity @s block_pos[2]
+			}
 
 			function astar:queue_path_from_storage
 		}

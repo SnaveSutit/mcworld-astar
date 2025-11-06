@@ -61,40 +61,92 @@ function summon_agent {
 }
 
 function summon_many_agents {
-	REPEAT (1, 100) as i {
+	REPEAT (1, 20) as i {
 		function example:summon_agent
 	}
 }
 
 function queue_path {
 	# Expects to be run as & at an agent
-	data remove storage astar:input path
+	kill @e[type=minecraft:text_display,tag=example.display]
+
+	data modify storage astar:input path set value {max_ms: 1000}
 
 	execute summon minecraft:item_frame run {
-		data modify storage astar:input path.from set from entity @s block_pos
+		data modify storage astar:input path.from.x set from entity @s block_pos[0]
+		data modify storage astar:input path.from.y set from entity @s block_pos[1]
+		data modify storage astar:input path.from.z set from entity @s block_pos[2]
+
+		summon minecraft:text_display ~ ~1 ~ { \
+			Tags: ['example.display'], \
+			text:{ text:'↓',color: green }, \
+			transformation:{translation:[0,0,0],left_rotation:[0,0,0,1],right_rotation:[0,0,0,1],scale:[10,10,10]}, \
+			background: 0, \
+			billboard: vertical \
+		}
 		kill @s
 	}
 
-	execute \
-		as @e[type=minecraft:marker,tag=maze.anchor,sort=random,distance=1..,limit=1] \
-		at @s \
-		summon minecraft:item_frame \
-	run {
-		data modify storage astar:input path.to set from entity @s block_pos
-		particle minecraft:block_marker{block_state:'iron_block'} ~ ~.5 ~ 0 0 0 0 0 force
-		kill @s
+	execute if data entity @s item.components.minecraft:custom_data.next_target run {
+		data modify storage astar:input path.to set from entity @s item.components.minecraft:custom_data.next_target
+		{ with entity @s item.components.minecraft:custom_data.next_target
+			$execute positioned $(x) $(y) $(z) run summon minecraft:text_display ~ ~1 ~ { \
+				Tags: ['example.display'], \
+				text:{ text:'↓',color: red }, \
+				transformation:{translation:[0,0,0],left_rotation:[0,0,0,1],right_rotation:[0,0,0,1],scale:[10,10,10]}, \
+				background: 0, \
+				billboard: vertical \
+			}
+		}
+		data remove entity @s item.components.minecraft:custom_data.next_target
+		function astar:queue_priority_path_from_storage
+	} else run {
+		execute \
+			as @e[type=minecraft:marker,tag=maze.anchor,sort=random,distance=1..,limit=1] \
+			at @s \
+			summon minecraft:item_frame \
+		run {
+			data modify storage astar:input path.to.x set from entity @s block_pos[0]
+			data modify storage astar:input path.to.y set from entity @s block_pos[1]
+			data modify storage astar:input path.to.z set from entity @s block_pos[2]
+
+			summon minecraft:text_display ~ ~1 ~ { \
+				Tags: ['example.display'], \
+				text:{ text:'↓',color: red }, \
+				transformation:{translation:[0,0,0],left_rotation:[0,0,0,1],right_rotation:[0,0,0,1],scale:[10,10,10]}, \
+				background: 0, \
+				billboard: vertical \
+			}
+			kill @s
+		}
+		function astar:queue_path_from_storage
 	}
 
-	function astar:queue_path_from_storage
+
 
 	op @s example.path_id = #astar.last_path_id astar.v
 }
 
 function on_path_found {
-	#ARGS: {nodes: [{x: int, y: int, z: int}, ...], queuer: UUID, path_id: int}
+	###
+	ARGS: {
+		nodes: [{x: int, y: int, z: int}, ...],
+		queuer: UUID,
+		path_id: int,
+		incomplete: bool,
+		max_ms: int
+		from: {x: int, y: int, z: int},
+		to: {x: int, y: int, z: int}
+	}
+	###
+
 	$execute as $(queuer) run {
 		data modify entity @s item.components.minecraft:custom_data.path_nodes \
 			set from storage astar:temp path.nodes
+
+		execute if data storage astar:temp {path:{incomplete: true}} run \
+			data modify entity @s item.components.minecraft:custom_data.next_target set from storage astar:temp path.to
+
 		op @s example.state = #example.state.following_path i
 	}
 }

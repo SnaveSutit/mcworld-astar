@@ -5,9 +5,10 @@
 	global.inner_size = Math.ceil(Math.sqrt(global.cell_size));
 
 	global.randomPosInCell = (x,y) => {
+		const size = global.cell_size - 2
 		return ({
-			x: x + Math.floor(Math.random() * global.cell_size) - global.cell_size / 2,
-			y: y + Math.floor(Math.random() * global.cell_size) - global.cell_size / 2
+			x: 1 + x + Math.floor(Math.random() * size) - Math.floor(size / 2),
+			y: 1 + y + Math.floor(Math.random() * size) - Math.floor(size / 2)
 		});
 	};
 %%>
@@ -51,11 +52,11 @@ function place {
 			kill @e[type=minecraft:marker,tag=maze.anchor]
 			REPEAT (0, global.maze_size-1) as y {
 				REPEAT (0, global.maze_size-1) as x {
-					<%%
-						const pos = global.randomPosInCell(x * global.cell_size, y * global.cell_size);
-						emit(`summon minecraft:marker ~${pos.x} ~ ~${pos.y} {Tags:['maze.anchor']}`);
-					%%>
-					# summon minecraft:marker ~<%x * global.cell_size%> ~ ~<%y * global.cell_size%> {Tags:['maze.anchor']}
+					# <%%
+					# 	const pos = global.randomPosInCell(x * global.cell_size, y * global.cell_size);
+					# 	emit(`summon minecraft:marker ~${pos.x} ~ ~${pos.y} {Tags:['maze.anchor']}`);
+					# %%>
+					summon minecraft:marker ~<%x * global.cell_size%> ~ ~<%y * global.cell_size%> {Tags:['maze.anchor']}
 				}
 			}
 		}
