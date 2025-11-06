@@ -1,5 +1,6 @@
 module.exports = {
-	dev: true,
+	dev: false,
+	stepDebug: false,
 	header: '#built using mc-build (https://github.com/mc-build/mc-build)',
 	internalScoreboardName: 'astar.v',
 	sign(num) {

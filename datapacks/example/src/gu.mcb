@@ -1,0 +1,54 @@
+# Thanks Gibbsly for this code! https://github.com/gibbsly/gu
+function on_load minecraft:load {
+	scoreboard objectives add gu.i dummy
+	scoreboard players set 256 gu.i 256
+	data modify storage gu:uuid hex_chars set value \
+		<%JSON.stringify([...Array(0x100).keys()].map(v => {const x = v.toString(16); return x.length > 1 ? x : '0' + x}))%>
+}
+
+function get_entity_uuid_string {
+	data modify storage gu:uuid temp set value {0:0,1:0,2:0,3:0,4:0,5:0,6:0,7:0,8:0,9:0,a:0,b:0,c:0,d:0,e:0,f:0}
+	data modify storage gu:uuid in set from entity @s UUID
+
+	execute store result score 0= gu.i store result score 1= gu.i run data get storage gu:uuid in[0]
+	execute store result storage gu:uuid temp.0 int 1 run scoreboard players operation 0= gu.i %= 256 gu.i
+	execute store result score 2= gu.i run scoreboard players operation 1= gu.i /= 256 gu.i
+	execute store result storage gu:uuid temp.1 int 1 run scoreboard players operation 1= gu.i %= 256 gu.i
+	execute store result score 3= gu.i run scoreboard players operation 2= gu.i /= 256 gu.i
+	execute store result storage gu:uuid temp.2 int 1 run scoreboard players operation 2= gu.i %= 256 gu.i
+	execute store result storage gu:uuid temp.3 int 1 run scoreboard players operation 3= gu.i /= 256 gu.i
+
+	execute store result score 0= gu.i store result score 1= gu.i run data get storage gu:uuid in[1]
+	execute store result storage gu:uuid temp.4 int 1 run scoreboard players operation 0= gu.i %= 256 gu.i
+	execute store result score 2= gu.i run scoreboard players operation 1= gu.i /= 256 gu.i
+	execute store result storage gu:uuid temp.5 int 1 run scoreboard players operation 1= gu.i %= 256 gu.i
+	execute store result score 3= gu.i run scoreboard players operation 2= gu.i /= 256 gu.i
+	execute store result storage gu:uuid temp.6 int 1 run scoreboard players operation 2= gu.i %= 256 gu.i
+	execute store result storage gu:uuid temp.7 int 1 run scoreboard players operation 3= gu.i /= 256 gu.i
+
+	execute store result score 0= gu.i store result score 1= gu.i run data get storage gu:uuid in[2]
+	execute store result storage gu:uuid temp.8 int 1 run scoreboard players operation 0= gu.i %= 256 gu.i
+	execute store result score 2= gu.i run scoreboard players operation 1= gu.i /= 256 gu.i
+	execute store result storage gu:uuid temp.9 int 1 run scoreboard players operation 1= gu.i %= 256 gu.i
+	execute store result score 3= gu.i run scoreboard players operation 2= gu.i /= 256 gu.i
+	execute store result storage gu:uuid temp.a int 1 run scoreboard players operation 2= gu.i %= 256 gu.i
+	execute store result storage gu:uuid temp.b int 1 run scoreboard players operation 3= gu.i /= 256 gu.i
+
+	execute store result score 0= gu.i store result score 1= gu.i run data get storage gu:uuid in[3]
+	execute store result storage gu:uuid temp.c int 1 run scoreboard players operation 0= gu.i %= 256 gu.i
+	execute store result score 2= gu.i run scoreboard players operation 1= gu.i /= 256 gu.i
+	execute store result storage gu:uuid temp.d int 1 run scoreboard players operation 1= gu.i %= 256 gu.i
+	execute store result score 3= gu.i run scoreboard players operation 2= gu.i /= 256 gu.i
+	execute store result storage gu:uuid temp.e int 1 run scoreboard players operation 2= gu.i %= 256 gu.i
+	execute store result storage gu:uuid temp.f int 1 run scoreboard players operation 3= gu.i /= 256 gu.i
+
+	block { with storage gu:uuid temp
+		REPEAT (0, 15) as i {
+			$data modify storage gu:uuid temp.<%i.toString(16)%> set from storage gu:uuid hex_chars[$(<%i.toString(16)%>)]
+		}
+	}
+
+	block { with storage gu:uuid temp
+		$data modify storage gu:uuid out set value "$(3)$(2)$(1)$(0)-$(7)$(6)-$(5)$(4)-$(b)$(a)-$(9)$(8)$(f)$(e)$(d)$(c)"
+	}
+}

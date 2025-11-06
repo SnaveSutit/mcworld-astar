@@ -21,14 +21,15 @@ function load minecraft:load {
 	set #8 astar.v
 	set #10 astar.v
 	set #16 astar.v
+	set #20 astar.v
 	set #32 astar.v
+	set #40 astar.v
 	set #64 astar.v
 	set #59999968 astar.v
 
 	# Solver States
 	set #astar.state.idle astar.v 0
-	set #astar.state.searching_forwards astar.v 1
-	set #astar.state.searching_backwards astar.v 2
+	set #astar.state.solving astar.v 1
 	# Current solver state
 	add #astar.state astar.v 0
 
@@ -38,6 +39,16 @@ function load minecraft:load {
 	IF (config.dev) {
 		tellraw @a [{ text: '[', color: gray }, { text:'A*',color: green}, ']', { text:" Loaded", color: green }]
 	}
+}
+
+function reset {
+	set #astar.last_node_id astar.v -1
+	set #astar.total_time astar.v 0
+	set #astar.nodes_calculated astar.v 0
+	set #astar.nodes_closed astar.v 0
+	op #astar.state astar.v = #astar.state.idle
+	kill @e[type=minecraft:marker,tag=astar.node]
+	function ./clear_queue
 }
 
 function clear_queue {
@@ -50,93 +61,144 @@ function queue_path {
 	$data modify storage astar:data path_queue set value { id: $(id), from: $(from), to: $(to) }
 }
 
+#ARGS: {nodes: [{x: int, y: int, z: int}, ...], queuer: UUID, path_id: int}
+tag function on_path_found {
+}
+
 function queue_path_from_storage {
 	# Expected Inputs
 	#storage astar:input path: { from: Vector3Int, to: Vector3Int }
 
 	execute store result storage astar:input path.id int 1 run add #astar.last_path_id astar.v 1
+
+	function gu:get_entity_uuid_string
+	data modify storage astar:input path.queuer set from storage gu:uuid out
+
 	data modify storage astar:data path_queue append from storage astar:input path
 	data remove storage astar:input path
 
-	tellraw @a [ \
-		'', \
-		[{ text: '[', color: gray }, { text:'A*',color: green}, ']'], \
-		{ text: ' Queued Path', color: white }, \
-		{ text: ' ID=', color: yellow }, { score: { name: '#astar.last_path_id', objective: astar.v }}, \
-		{ text: ' From=', color: light_purple }, \
-		'[', \
-		{ score: { name: '#astar.path.start.x', objective: astar.v }, color: red }, ' ', \
-		{ score: { name: '#astar.path.start.y', objective: astar.v }, color: green }, ' ', \
-		{ score: { name: '#astar.path.start.z', objective: astar.v }, color: blue }, \
-		']', \
-		{ text: ' To=', color: light_purple }, \
-		'[', \
-		{ score: { name: '#astar.path.end.x', objective: astar.v }, color: red }, ' ', \
-		{ score: { name: '#astar.path.end.y', objective: astar.v }, color: green }, ' ', \
-		{ score: { name: '#astar.path.end.z', objective: astar.v }, color: blue }, \
-		']' \
-	]
+	IF (config.dev) {
+		tellraw @a [ \
+			'', \
+			[{ text: '[', color: gray }, { text:'A*',color: green}, ']'], \
+			{ text: ' Queued Path', color: white }, \
+			{ text: ' ID=', color: yellow }, { score: { name: '#astar.last_path_id', objective: astar.v }}, \
+			{ text: ' From=', color: light_purple }, \
+			'[', \
+			{ storage: 'astar:data', nbt:'path_queue[-1].from[0]', color: red }, ' ', \
+			{ storage: 'astar:data', nbt:'path_queue[-1].from[1]', color: green }, ' ', \
+			{ storage: 'astar:data', nbt:'path_queue[-1].from[2]', color: blue }, \
+			']', \
+			{ text: ' To=', color: light_purple }, \
+			'[', \
+			{ storage: 'astar:data', nbt:'path_queue[-1].to[0]', color: red }, ' ', \
+			{ storage: 'astar:data', nbt:'path_queue[-1].to[1]', color: green }, ' ', \
+			{ storage: 'astar:data', nbt:'path_queue[-1].to[2]', color: blue }, \
+			']' \
+		]
+	}
 
-	return run get #astar.last_path_id astar.v
+	schedule function astar:process_queue 1t replace
+}
+
+function process_queue {
+	execute if score #astar.state astar.v = #astar.state.solving astar.v run return 0
+	set #path_count astar.v from storage astar:data path_queue
+	execute if score #path_count astar.v matches 0 run return 0
+	function astar:search
 }
 
 function search {
 	# Expected Inputs
 	#storage astar:data path_queue[0]: { id: int, from: Vector3Int, to: Vector3Int }
 
+	stopwatch remove astar:tick_time
+	stopwatch create astar:tick_time
+
 	# Reset path variables
 	set #astar.last_node_id astar.v -1
-	set #astar.closed_nodes astar.v 0
+	set #astar.total_time astar.v 0
+	set #astar.nodes_calculated astar.v 0
+	set #astar.nodes_closed astar.v 0
 
-	op #astar.state astar.v = #astar.state.searching_forwards
+	op #astar.state astar.v = #astar.state.solving
 
 	# Load path data from storage
 	data remove storage astar:temp path
 	set #astar.path.id astar.v from storage astar:data path_queue[0].id
+	data modify storage astar:temp path.queuer set from storage astar:data path_queue[0].queuer
 
 	execute store result storage astar:temp path.from.x int 1 run \
-		set #astar.path.start.x astar.v from storage astar:data path_queue[0].from[0]
+		set #astar.path.from.x astar.v from storage astar:data path_queue[0].from[0]
 	execute store result storage astar:temp path.from.y int 1 run \
-		set #astar.path.start.y astar.v from storage astar:data path_queue[0].from[1]
+		set #astar.path.from.y astar.v from storage astar:data path_queue[0].from[1]
 	execute store result storage astar:temp path.from.z int 1 run \
-		set #astar.path.start.z astar.v from storage astar:data path_queue[0].from[2]
+		set #astar.path.from.z astar.v from storage astar:data path_queue[0].from[2]
 
 	execute store result storage astar:temp path.to.x int 1 run \
-		set #astar.path.end.x astar.v from storage astar:data path_queue[0].to[0]
+		set #astar.path.to.x astar.v from storage astar:data path_queue[0].to[0]
 	execute store result storage astar:temp path.to.y int 1 run \
-		set #astar.path.end.y astar.v from storage astar:data path_queue[0].to[1]
+		set #astar.path.to.y astar.v from storage astar:data path_queue[0].to[1]
 	execute store result storage astar:temp path.to.z int 1 run \
-		set #astar.path.end.z astar.v from storage astar:data path_queue[0].to[2]
+		set #astar.path.to.z astar.v from storage astar:data path_queue[0].to[2]
 
 	data remove storage astar:data path_queue[0]
 
 	set #astar.move_cost astar.v 0
-	set #astar.parent.id astar.v 0
+	set #astar.parent.id astar.v -1
 	set #astar.parent.g astar.v 0
 
 	execute summon minecraft:marker run { with storage astar:temp path.from
 		$tp @s $(x) $(y) $(z)
 		tag @s add astar.from_node
+
 		function astar:node/initialize
+
+		set @s astar.node.g 0
+		set @s astar.node.f 0
+
+		stopwatch restart astar:tick_time
+		execute at @s run function astar:search/step
+	}
+}
+
+IF (config.stepDebug) {
+	function next_step {
+		execute as @e[type=minecraft:marker,tag=astar.next,limit=1] at @s run function astar:search/step
+		function astar:debug/update_node_text_displays
 	}
 }
 
 dir search {
 	function step {
+		IF (!config.stepDebug) {
+			execute if stopwatch astar:tick_time 0.03.. run return run {
+				execute store result score #time astar.v run stopwatch query astar:tick_time 1000
+				op #astar.total_time astar.v += #time astar.v
+				tag @s add astar.next
+				IF (!config.stepDebug) {
+					schedule 1t replace {
+						stopwatch restart astar:tick_time
+						execute as @e[type=minecraft:marker,tag=astar.next,limit=1] at @s run function astar:search/step
+					}
+				}
+			}
+		}
+		tag @s remove astar.next
+
 		# Expects to be run as and at a node entity
 		tag @s add astar.closed
+		add #astar.nodes_closed astar.v 1
 
 		execute \
-			if score @s astar.node.x = #astar.path.end.x astar.v \
-			if score @s astar.node.y = #astar.path.end.y astar.v \
-			if score @s astar.node.z = #astar.path.end.z astar.v \
+			if score @s astar.node.x = #astar.path.to.x astar.v \
+			if score @s astar.node.y = #astar.path.to.y astar.v \
+			if score @s astar.node.z = #astar.path.to.z astar.v \
 		run return run {
+			execute store result score #time astar.v run stopwatch query astar:tick_time 1000
+			op #astar.total_time astar.v += #time astar.v
 			tag @s add astar.to_node
-			tellraw @a [ \
-				'', \
-				[{ text: '[', color: gray }, { text:'A*',color: green}, ']'], \
-				{ text: ' Reached Target Node!', color: gold } \
-			]
+			function astar:search/trace
 		}
 
 		op #astar.parent.id astar.v = @s astar.node.id
@@ -203,7 +265,11 @@ dir search {
 			at @s \
 		run return run {
 			tag @s remove astar.min_f
-			function astar:search/step
+			IF (config.stepDebug) {
+				tag @s add astar.next
+			} ELSE {
+				function astar:search/step
+			}
 		}
 		# If multiple nodes have the same min f cost, chose the one with the lowest h cost
 		execute if score #astar.min_f.count astar.v matches 2.. run return run {
@@ -225,15 +291,23 @@ dir search {
 			run return run {
 				tag @e[type=minecraft:marker,tag=astar.node] remove astar.min_f
 				tag @s remove astar.min_h
-				function astar:search/step
+				IF (config.stepDebug) {
+					tag @s add astar.next
+				} ELSE {
+					function astar:search/step
+				}
 			}
 			# If multiple nodes have the same min h cost, choose one arbitrarily
-			execute if score #astar.min_h.count astar.v matches 2.. run return run {
-				say Multiple nodes with same min h cost, choosing one arbitrarily
-				execute as @e[type=minecraft:marker,tag=astar.min_h,distance=0.1..,limit=1] at @s run {
-					tag @e[type=minecraft:marker,tag=astar.node] remove astar.min_f
-					tag @e[type=minecraft:marker,tag=astar.node] remove astar.min_h
-					particle minecraft:block_marker{block_state:'minecraft:redstone_block'} ~ ~0.5 ~
+			execute \
+				if score #astar.min_h.count astar.v matches 2.. \
+				as @e[type=minecraft:marker,tag=astar.min_h,distance=0.1..,limit=1] \
+				at @s \
+			run return run {
+				tag @e[type=minecraft:marker,tag=astar.node] remove astar.min_f
+				tag @e[type=minecraft:marker,tag=astar.node] remove astar.min_h
+				IF (config.stepDebug) {
+					tag @s add astar.next
+				} ELSE {
 					function astar:search/step
 				}
 			}
@@ -246,13 +320,56 @@ dir search {
 		execute if score #astar.min_f.count astar.v matches 0 run {
 			say No valid nodes remaining, path not found
 		}
+	}
 
+	function trace {
+		# Expects to be run as & at the 'to' node entity
+
+		execute if entity @s[tag=astar.from_node] run return run {
+			execute store result score #path_length astar.v if entity @e[type=minecraft:marker,tag=astar.path_node]
+			IF (config.dev) {
+				tellraw @a [ \
+					'', \
+					[{ text: '[', color: gray }, { text:'A*',color: green}, ']'], \
+					{ text: ' Path Found!', color: green }, \
+					{ text: ' ID=', color: yellow }, { score: { name: '#astar.path.id', objective: astar.v }}, \
+					{ text: ' Length=', color: blue }, { score: { name: '#path_length', objective: astar.v }}, \
+					{ text: ' Calculated=', color: gold }, { score: { name: '#astar.nodes_calculated', objective: astar.v}}, \
+					{ text: ' Closed=', color: red }, { score: { name: '#astar.nodes_closed', objective: astar.v}}, \
+					{ text: ' Time=', color: aqua }, { score: { name: '#astar.total_time', objective: astar.v }}, 'ms' \
+				]
+				schedule 1t replace {
+					function astar:debug/update_node_text_displays
+					kill @e[type=minecraft:marker,tag=astar.node]
+				}
+			} ELSE {
+				kill @e[type=minecraft:marker,tag=astar.node]
+			}
+			function #astar:on_path_found with storage astar:temp path
+			op #astar.state astar.v = #astar.state.idle
+			schedule function astar:process_queue 1t replace
+		}
+
+		tag @s add astar.path_node
+		data modify storage astar:temp path.nodes append value {}
+		execute store result storage astar:temp path.nodes[-1].x int 1 run get @s astar.node.x
+		execute store result storage astar:temp path.nodes[-1].y int 1 run get @s astar.node.y
+		execute store result storage astar:temp path.nodes[-1].z int 1 run get @s astar.node.z
+
+		op #astar.parent_id astar.v = @s astar.node.parent_id
+		execute \
+			as @e[type=minecraft:marker,tag=astar.node] \
+			if score @s astar.node.id = #astar.parent_id astar.v \
+			at @s \
+		run \
+			function astar:search/trace
 	}
 }
 
 dir node {
 	function initialize {
 		tag @s add astar.node
+		add #astar.nodes_calculated astar.v 1
 
 		#> Node Properties
 		#>-----------------
@@ -272,9 +389,9 @@ dir node {
 		op #dy astar.v = @s astar.node.y
 		op #dz astar.v = @s astar.node.z
 
-		op #diff_mid astar.v -= #astar.path.end.x
-		op #dy astar.v -= #astar.path.end.y
-		op #dz astar.v -= #astar.path.end.z
+		op #diff_mid astar.v -= #astar.path.to.x
+		op #dy astar.v -= #astar.path.to.y
+		op #dz astar.v -= #astar.path.to.z
 
 		# Get the absolute value of the difference
 		abs #diff_mid astar.v
@@ -318,7 +435,14 @@ dir node {
 		#>--------
 		# astar.move_cost is calculated in the summon command and set based on the move being made. Eg straight, diagonal, or vertical
 		op @s astar.node.g = #astar.move_cost astar.v
-
+		execute if block ~ ~-1 ~ minecraft:yellow_concrete run {
+			tag @s add astar.node.yellow_concrete
+			add @s astar.node.g 10
+		}
+		execute if block ~ ~-1 ~ minecraft:red_concrete run {
+			tag @s add astar.node.red_concrete
+			add @s astar.node.g 30
+		}
 		# Add the parent's g cost
 		op @s astar.node.g += #astar.parent.g astar.v
 
@@ -348,16 +472,19 @@ dir node {
 	function update {
 		execute \
 			as @e[type=minecraft:marker,tag=astar.node,distance=..0.1,limit=1] \
-			run return run execute if entity @s[tag=!astar.closed] \
+			run return run execute unless entity @s[tag=astar.closed] \
 		run {
-			op #move_cost astar.v = #astar.parent.g
-			op #move_cost astar.v += #astar.move_cost
+			op #move_cost astar.v = #astar.move_cost
+			execute if entity @s[tag=astar.node.yellow_concrete] run add #move_cost astar.v 10
+			execute if entity @s[tag=astar.node.red_concrete] run add #move_cost astar.v 30
+			op #move_cost astar.v += #astar.parent.g
 			# If new g cost is lower, update parent and costs
 			execute if score @s astar.node.g > #move_cost astar.v run {
 				# Set new parent
 				op @s astar.node.parent_id = #astar.parent.id astar.v
 				# Update g cost
 				op @s astar.node.g = #move_cost astar.v
+
 				# Update f cost
 				op @s astar.node.f = @s astar.node.h
 				op @s astar.node.f += @s astar.node.g
@@ -376,20 +503,12 @@ IF (config.dev) {
 			team modify to color red
 		}
 
-		function cleanup {
-			kill @e[type=minecraft:marker]
-			kill @e[type=minecraft:text_display]
+		function reset {
+			function astar:reset
+			kill @e[type=minecraft:text_display,tag=astar.debug.node_display]
 		}
 
-		function tick minecraft:tick {
-			execute as @e[type=minecraft:marker,tag=astar.from_node] at @s run {
-				particle minecraft:dust{color:[0, 1, 0],scale: 1} ~ ~ ~ 0 1 0 10 0
-			}
-
-			execute as @e[type=minecraft:marker,tag=astar.to_node] at @s run {
-				particle minecraft:dust{color:[1, 0, 0],scale: 1} ~ ~ ~ 0 1 0 10 0
-			}
-
+		clock second 1s {
 			execute as @e[type=minecraft:item_frame,tag=astar.debug.new] run {
 				team join from @s[tag=astar.debug.from]
 				team join to @s[tag=astar.debug.to]
@@ -427,19 +546,15 @@ IF (config.dev) {
 			execute as @n[type=minecraft:item_frame, tag=astar.debug.to] at @s run \
 				data modify storage astar:input path.to set from entity @s block_pos
 
-			set #id astar.v run function astar:queue_path_from_storage
+			function astar:queue_path_from_storage
 		}
 
 		function test {
-			function ./cleanup
-			function astar:clear_queue
+			function ./reset
 			function ./queue_from_debug_entities
-			function astar:search
-		}
-
-		function test_step {
-			execute as @n[tag=astar.node,tag=!astar.closed] at @s run function astar:search/step
-			function ./update_node_text_displays
+			schedule 1t replace {
+				function astar:debug/update_node_text_displays
+			}
 		}
 
 		function print_node {
@@ -476,26 +591,56 @@ IF (config.dev) {
 
 		function update_node_text_displays {
 			kill @e[type=minecraft:text_display,tag=astar.debug.node_display]
+			# kill @e[type=minecraft:text_display,tag=astar.debug.node_display.old]
+			# execute as @e[type=minecraft:text_display,tag=astar.debug.node_display] at @s run {
+			# 	tag @s add astar.debug.node_display.old
+			# 	tp @s ~ ~1 ~
+			# }
 			execute as @e[type=minecraft:marker,tag=astar.node] at @s run function ./create_node_text_display
 		}
 
 		function create_node_text_display {
 			# Expects to be run as a node entity
 			set #this.is_closed astar.v run execute if entity @s[tag=astar.closed]
+			set #this.is_path astar.v run execute if entity @s[tag=astar.path_node]
 			op #this.node.g astar.v = @s astar.node.g
 			op #this.node.h astar.v = @s astar.node.h
 			op #this.node.f astar.v = @s astar.node.f
+			op #this.node.id astar.v = @s astar.node.id
+			op #this.node.parent_id astar.v = @s astar.node.parent_id
 			execute summon minecraft:text_display run {
 				tag @s add astar.debug.node_display
 				data modify entity @s transformation set value {translation:[0.125,0.1,0],left_rotation:[-1,0,0,1],right_rotation:[0,0,1,1],scale:[0.5,0.5,0.5]}
 				data modify entity @s text set value [ \
-					{score: {name: '#this.node.g', objective: astar.v},color: green}, \
-					'\s\s', \
-					{score: {name: '#this.node.h', objective: astar.v},color: red}, \
+					'', \
+					{score: {name: '#this.node.g', objective: astar.v},color:green}, \
+					'+', \
+					{score: {name: '#this.node.h', objective: astar.v},color:red}, \
+					'=', \
+					{score: {name: '#this.node.f', objective: astar.v},color:gold}, \
 					'\n', \
-					{score: {name: '#this.node.f', objective: astar.v},color: gold} \
+					[{text:'ID',color:yellow},{text:'=',color:white},{score: {name: '#this.node.id', objective: astar.v}}], \
+					'\n', \
+					[{text:'P',color:aqua},{text:'=',color:white},{score: {name: '#this.node.parent_id', objective: astar.v}}] \
 				]
 				execute if score #this.is_closed astar.v matches 1 run data modify entity @s background set value 0x55ff5555
+				execute if score #this.is_path astar.v matches 1 run data modify entity @s background set value 0x555555ff
+			}
+			execute \
+				if score #this.node.parent_id astar.v matches 0.. \
+				summon minecraft:text_display \
+			run {
+				tag @s add astar.debug.node_display
+				data modify entity @s transformation set value {translation:[-0.125,0.1,0],left_rotation:[-1,0,0,1],right_rotation:[0,0,-1,1],scale:[1,1,1]}
+				data modify entity @s text set value '>'
+				tag @s add this
+				execute \
+					as @e[type=minecraft:marker,tag=astar.node,distance=..2] \
+					if score @s astar.node.id = #this.node.parent_id astar.v \
+					facing entity @s feet \
+				run \
+					tp @e[type=minecraft:text_display,tag=this,limit=1,distance=..0.1] ~.25 ~ ~ ~ ~
+				tag @s remove this
 			}
 		}
 	}

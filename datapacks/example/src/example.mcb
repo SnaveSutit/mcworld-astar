@@ -1,0 +1,114 @@
+import ./score.mcbt
+
+function on_load minecraft:load {
+	create i
+	create example.path_id
+	create example.state
+
+	set #example.state.idle i 0
+	set #example.state.waiting_for_path i 1
+	set #example.state.following_path i 2
+
+	tellraw @a [ \
+		'', \
+		[{ text: '[', color: gray }, { text:'Example',color: blue}, ']'], \
+		{ text: ' Loaded', color: blue } \
+	]
+}
+
+clock agents_tick 10t {
+	execute as @e[type=minecraft:item_display,tag=example.agent] at @s run {
+		execute if score @s example.state = #example.state.idle i run {
+			data modify entity @s glow_color_override set value 0xFF0000
+			op @s example.state = #example.state.waiting_for_path i
+			function example:queue_path
+		}
+
+		execute if score @s example.state = #example.state.waiting_for_path i run {
+			data modify entity @s glow_color_override set value 0xFFFF00
+		}
+
+		execute if score @s example.state = #example.state.following_path i run {
+			data modify entity @s glow_color_override set value 0x00FF00
+
+			set #node_count i from entity @s item.components.minecraft:custom_data.path_nodes
+			execute if score #node_count i matches 0 run return run \
+				op @s example.state = #example.state.idle i
+
+			{ with entity @s item.components.minecraft:custom_data.path_nodes[-1]
+				$execute facing $(x) ~ $(z) run tp @s $(x) ~ $(z) ~ ~
+			}
+			data remove entity @s item.components.minecraft:custom_data.path_nodes[-1]
+
+		}
+	}
+}
+
+# clock particles 10t {
+# 	execute at @e[type=minecraft:marker,tag=example.anchor] run particle minecraft:wax_off ~ ~.25 ~ 0 0 0 0 0 force
+# }
+
+function clear_agents {
+	kill @e[type=minecraft:item_display,tag=example.agent]
+	kill @e[type=minecraft:marker,tag=example.target]
+}
+
+function summon_agent {
+	execute align xyz positioned ~.5 ~ ~.5 summon minecraft:item_display run {
+		tag @s add example.agent
+		op @s example.state = #example.state.idle i
+		data modify entity @s transformation set value {translation:[0,0.25,0],left_rotation:[0,0,0,1],right_rotation:[0,0,0,1],scale:[0.5,0.5,0.5]}
+		data modify entity @s item set value {id:'minecraft:observer'}
+		data modify entity @s teleport_duration set value 10
+		data modify entity @s Glowing set value true
+	}
+}
+
+function summon_many_agents {
+	REPEAT (1, 100) as i {
+		function example:summon_agent
+	}
+}
+
+function setup {
+	kill @e[type=minecraft:marker,tag=example.anchor]
+	execute positioned 53 1 53 run {
+		REPEAT (0, 9) as y {
+			REPEAT (0, 9) as x {
+				summon minecraft:marker ~<%x * 4%> ~ ~<%y * 4%> {Tags:['example.anchor']}
+			}
+		}
+	}
+}
+
+function queue_path {
+	# Expects to be run as & at an agent
+	data remove storage astar:input path
+
+	execute summon minecraft:item_frame run {
+		data modify storage astar:input path.from set from entity @s block_pos
+		kill @s
+	}
+
+	execute \
+		as @e[type=minecraft:marker,tag=example.anchor,sort=random,distance=1..,limit=1] \
+		at @s \
+		summon minecraft:item_frame \
+	run {
+		data modify storage astar:input path.to set from entity @s block_pos
+		kill @s
+	}
+
+	function astar:queue_path_from_storage
+
+	op @s example.path_id = #astar.last_path_id astar.v
+}
+
+function on_path_found {
+	#ARGS: {nodes: [{x: int, y: int, z: int}, ...], queuer: UUID, path_id: int}
+	$execute as $(queuer) run {
+		data modify entity @s item.components.minecraft:custom_data.path_nodes \
+			set from storage astar:temp path.nodes
+		op @s example.state = #example.state.following_path i
+	}
+}
