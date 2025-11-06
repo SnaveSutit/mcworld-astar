@@ -1,71 +1,134 @@
+<%%
+	global.cell_size = 10;
+	global.maze_size = 10;
 
-function remove_walls {
-	fill ~ ~1 ~ ~<%4*40%> ~1 ~<%4*40%> air
+	global.inner_size = Math.ceil(Math.sqrt(global.cell_size));
+
+	global.randomPosInCell = (x,y) => {
+		return ({
+			x: x + Math.floor(Math.random() * global.cell_size) - global.cell_size / 2,
+			y: y + Math.floor(Math.random() * global.cell_size) - global.cell_size / 2
+		});
+	};
+%%>
+
+tag block floor {
+	minecraft:red_concrete
+	minecraft:yellow_concrete
 }
-function place {
-	execute positioned 52 0 52 run {
-		kill @e[type=marker,tag=maze.target]
-		fill ~ ~ ~ ~<%4*40%> ~ ~<%4*40%> air
-		fill ~ ~1 ~ ~<%4*40%> ~1 ~<%4*40%> air
-		fill ~ ~ ~ ~<%4*40%> ~ ~<%4*40%> red_concrete
-		fill ~ ~1 ~ ~<%4*40%> ~1 ~<%4*40%> light_gray_concrete
-		kill @e[tag=maze.gen]
-		summon armor_stand ~2 ~1 ~2 {Tags:['maze.gen']}
-		summon marker ~2 ~1 ~2 {Tags:['maze.target']}
 
-		function maze:go
+function clear {
+	gamerule max_block_modifications <%101*101%>
+	kill @e[type=minecraft:marker,tag=maze.target]
+	kill @e[type=minecraft:marker,tag=maze.anchor]
+	execute positioned 52 0 52 run {
+		fill ~ ~ ~ ~100 ~ ~100 air
+		fill ~ ~1 ~ ~100 ~1 ~100 air
 	}
 }
+
+function remove_walls {
+	execute positioned 52 0 52 run \
+		fill ~ ~1 ~ ~<%global.cell_size*global.maze_size%> ~1 ~<%global.cell_size*global.maze_size%> air
+}
+
+clock particle_clock 10t {
+	execute at @e[type=minecraft:marker,tag=maze.anchor] run particle minecraft:wax_off ~ ~.25 ~ 0 0 0 0 0 force
+}
+
+function place {
+	execute positioned 52 0 52 run {
+		function ./clear
+		fill ~ ~ ~ ~<%global.cell_size*global.maze_size%> ~ ~<%global.cell_size*global.maze_size%> red_concrete
+		fill ~ ~1 ~ ~<%global.cell_size*global.maze_size%> ~1 ~<%global.cell_size*global.maze_size%> light_gray_concrete
+		kill @e[tag=maze.gen]
+		summon minecraft:marker ~<%global.cell_size/2%> ~1 ~<%global.cell_size/2%> {Tags:['maze.gen']}
+		summon minecraft:marker ~<%global.cell_size/2%> ~1 ~<%global.cell_size/2%> {Tags:['maze.target']}
+
+		function maze:go
+
+		execute positioned ~<%global.cell_size/2%> 1 ~<%global.cell_size/2%> run {
+			kill @e[type=minecraft:marker,tag=maze.anchor]
+			REPEAT (0, global.maze_size-1) as y {
+				REPEAT (0, global.maze_size-1) as x {
+					<%%
+						const pos = global.randomPosInCell(x * global.cell_size, y * global.cell_size);
+						emit(`summon minecraft:marker ~${pos.x} ~ ~${pos.y} {Tags:['maze.anchor']}`);
+					%%>
+					# summon minecraft:marker ~<%x * global.cell_size%> ~ ~<%y * global.cell_size%> {Tags:['maze.anchor']}
+				}
+			}
+		}
+	}
+}
+
 function go {
 	execute if entity @e[tag=maze.gen] run schedule function maze:go 1t
 	REPEAT(0, 199) as i {
 		execute as @e[tag=maze.gen] at @s run block gen_tick {
-			execute if block ~4 ~ ~ light_gray_concrete run summon armor_stand ~4 ~ ~ {Tags:[potential,a]}
-			execute if block ~-4 ~ ~ light_gray_concrete run summon armor_stand ~-4 ~ ~ {Tags:[potential,b]}
-			execute if block ~ ~ ~4 light_gray_concrete run summon armor_stand ~ ~ ~4 {Tags:[potential,c]}
-			execute if block ~ ~ ~-4 light_gray_concrete run summon armor_stand ~ ~ ~-4 {Tags:[potential,d]}
-			execute unless entity @e[tag=potential] run {
+			execute if block ~<%global.cell_size%> ~ ~ light_gray_concrete run \
+				summon minecraft:marker ~<%global.cell_size%> ~ ~ {Tags:[potential,a]}
+			execute if block ~<%-global.cell_size%> ~ ~ light_gray_concrete run \
+				summon minecraft:marker ~<%-global.cell_size%> ~ ~ {Tags:[potential,b]}
+			execute if block ~ ~ ~<%global.cell_size%> light_gray_concrete run \
+				summon minecraft:marker ~ ~ ~<%global.cell_size%> {Tags:[potential,c]}
+			execute if block ~ ~ ~<%-global.cell_size%> light_gray_concrete run \
+				summon minecraft:marker ~ ~ ~<%-global.cell_size%> {Tags:[potential,d]}
+
+			execute unless entity @e[tag=potential] run block potential {
+				# Fill inside of cell
+				fill \
+					~<%global.inner_size%> ~ ~<%global.inner_size%> \
+					~<%-global.inner_size%> ~ ~<%-global.inner_size%> air
 				# backtrace
-				fill ~1 ~ ~1 ~-1 ~ ~-1 air
 				execute \
 					unless entity @s[tag=temp] \
-					unless block ~4 ~-1 ~ air \
-					unless block ~-4 ~-1 ~ air \
-					unless block ~ ~-1 ~-4 air \
-					unless block ~ ~-1 ~4 air \
-					if block ~4 ~ ~ air \
-					if block ~-4 ~ ~ air \
-					if block ~ ~ ~4 air \
-					if block ~ ~ ~-4 air \
-				run {
-					fill ~-4 ~ ~-1 ~4 ~ ~1 air
-					fill ~-1 ~ ~-4 ~1 ~ ~4 air
-					# function example:summon
-					# fill ~-4 ~-1 ~ ~4 ~-1 ~ gray_concrete replace red_concrete
-					# fill ~ ~-1 ~-4 ~ ~-1 ~4 gray_concrete replace red_concrete
+					unless block ~<%global.cell_size%> ~-1 ~ air \
+					unless block ~<%-global.cell_size%> ~-1 ~ air \
+					unless block ~ ~-1 ~<%-global.cell_size%> air \
+					unless block ~ ~-1 ~<%global.cell_size%> air \
+					if block ~<%global.cell_size%> ~ ~ air \
+					if block ~<%-global.cell_size%> ~ ~ air \
+					if block ~ ~ ~<%global.cell_size%> air \
+					if block ~ ~ ~<%-global.cell_size%> air \
+				run block create_open_areas {
+					fill ~<%-global.cell_size%> ~ ~-1 ~<%global.cell_size%> ~ ~1 air
+					fill ~-1 ~ ~<%-global.cell_size%> ~1 ~ ~<%global.cell_size%> air
 				}
 				tag @s add temp
 				execute if block ~ ~-1 ~ gray_concrete run kill @s
-				execute if block ~ ~-1 ~ red_stained_glass run tp @s ~-4 ~ ~
-				execute if block ~ ~-1 ~ green_stained_glass run tp @s ~4 ~ ~
-				execute if block ~ ~-1 ~ blue_stained_glass run tp @s ~ ~ ~-4
-				execute if block ~ ~-1 ~ black_stained_glass run tp @s ~ ~ ~4
+				execute if block ~ ~-1 ~ red_stained_glass run tp @s ~<%-global.cell_size%> ~ ~
+				execute if block ~ ~-1 ~ green_stained_glass run tp @s ~<%global.cell_size%> ~ ~
+				execute if block ~ ~-1 ~ blue_stained_glass run tp @s ~ ~ ~<%-global.cell_size%>
+				execute if block ~ ~-1 ~ black_stained_glass run tp @s ~ ~ ~<%global.cell_size%>
 				setblock ~ ~-1 ~ gray_concrete
 			}
-			execute as @e[tag=potential,sort=random,limit=1] at @s run {
-				summon marker ~ ~ ~ {Tags:['maze.target']}
-				execute if entity @s[tag=a] run fill ~-4 ~ ~-1 ~1 ~ ~1 air
-				execute if entity @s[tag=a] run fill ~-4 ~-1 ~ ~ ~-1 ~ gray_concrete replace red_concrete
-				execute if entity @s[tag=a] run setblock ~ ~-1 ~ red_stained_glass
-				execute if entity @s[tag=b] run fill ~-1 ~ ~-1 ~4 ~ ~1 air
-				execute if entity @s[tag=b] run fill ~ ~-1 ~ ~4 ~-1 ~ gray_concrete replace red_concrete
-				execute if entity @s[tag=b] run setblock ~ ~-1 ~ green_stained_glass
-				execute if entity @s[tag=c] run fill ~-1 ~ ~-4 ~1 ~ ~1 air
-				execute if entity @s[tag=c] run fill ~ ~-1 ~-4 ~ ~-1 ~ gray_concrete replace red_concrete
-				execute if entity @s[tag=c] run setblock ~ ~-1 ~ blue_stained_glass
-				execute if entity @s[tag=d] run fill ~-1 ~ ~-1 ~1 ~ ~4 air
-				execute if entity @s[tag=d] run fill ~ ~-1 ~ ~ ~-1 ~4 gray_concrete replace red_concrete
-				execute if entity @s[tag=d] run setblock ~ ~-1 ~ black_stained_glass
+			execute as @e[tag=potential,sort=random,limit=1] at @s run block move_to_target {
+				summon minecraft:marker ~ ~ ~ {Tags:['maze.target']}
+				execute if entity @s[tag=a] run block a {
+					fill ~<%-global.cell_size%> ~ ~-1 ~1 ~ ~1 air
+					fill ~<%-global.cell_size%> ~-1 ~ ~ ~-1 ~ gray_concrete replace #maze:floor
+					fill ~<%-global.cell_size-1%> ~-1 ~-1 ~1 ~-1 ~1 yellow_concrete replace red_concrete
+					setblock ~ ~-1 ~ red_stained_glass
+				}
+				execute if entity @s[tag=b] run block b {
+					fill ~-1 ~ ~-1 ~<%global.cell_size%> ~ ~1 air
+					fill ~ ~-1 ~ ~<%global.cell_size%> ~-1 ~ gray_concrete replace #maze:floor
+					fill ~-1 ~-1 ~-1 ~<%global.cell_size+1%> ~-1 ~1 yellow_concrete replace red_concrete
+					setblock ~ ~-1 ~ green_stained_glass
+				}
+				execute if entity @s[tag=c] run block c {
+					fill ~-1 ~ ~<%-global.cell_size%> ~1 ~ ~1 air
+					fill ~ ~-1 ~<%-global.cell_size%> ~ ~-1 ~ gray_concrete replace #maze:floor
+					fill ~-1 ~-1 ~<%-global.cell_size-1%> ~1 ~-1 ~1 yellow_concrete replace red_concrete
+					setblock ~ ~-1 ~ blue_stained_glass
+				}
+				execute if entity @s[tag=d] run block d {
+					fill ~-1 ~ ~-1 ~1 ~ ~<%global.cell_size%> air
+					fill ~ ~-1 ~ ~ ~-1 ~<%global.cell_size%> gray_concrete replace #maze:floor
+					fill ~-1 ~-1 ~-1 ~1 ~-1 ~<%global.cell_size+1%> yellow_concrete replace red_concrete
+					setblock ~ ~-1 ~ black_stained_glass
+				}
 				tp @e[tag=maze.gen] @s
 				tag @e[tag=maze.gen] remove temp
 			}

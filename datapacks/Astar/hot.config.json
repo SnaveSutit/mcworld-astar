@@ -1,0 +1,6 @@
+{
+	"dev": true,
+	"nodeDebug": true,
+	"verboseLogging": true,
+	"stepDebug": false
+}

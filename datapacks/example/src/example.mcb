@@ -16,7 +16,7 @@ function on_load minecraft:load {
 	]
 }
 
-clock agents_tick 10t {
+clock agents_tick 5t {
 	execute as @e[type=minecraft:item_display,tag=example.agent] at @s run {
 		execute if score @s example.state = #example.state.idle i run {
 			data modify entity @s glow_color_override set value 0xFF0000
@@ -44,10 +44,6 @@ clock agents_tick 10t {
 	}
 }
 
-# clock particles 10t {
-# 	execute at @e[type=minecraft:marker,tag=example.anchor] run particle minecraft:wax_off ~ ~.25 ~ 0 0 0 0 0 force
-# }
-
 function clear_agents {
 	kill @e[type=minecraft:item_display,tag=example.agent]
 	kill @e[type=minecraft:marker,tag=example.target]
@@ -57,9 +53,9 @@ function summon_agent {
 	execute align xyz positioned ~.5 ~ ~.5 summon minecraft:item_display run {
 		tag @s add example.agent
 		op @s example.state = #example.state.idle i
-		data modify entity @s transformation set value {translation:[0,0.25,0],left_rotation:[0,0,0,1],right_rotation:[0,0,0,1],scale:[0.5,0.5,0.5]}
+		data modify entity @s transformation set value {translation:[0,0.5,0],left_rotation:[0,0,0,1],right_rotation:[0,0,0,1],scale:[1,1,1]}
 		data modify entity @s item set value {id:'minecraft:observer'}
-		data modify entity @s teleport_duration set value 10
+		data modify entity @s teleport_duration set value 5
 		data modify entity @s Glowing set value true
 	}
 }
@@ -67,17 +63,6 @@ function summon_agent {
 function summon_many_agents {
 	REPEAT (1, 100) as i {
 		function example:summon_agent
-	}
-}
-
-function setup {
-	kill @e[type=minecraft:marker,tag=example.anchor]
-	execute positioned 53 1 53 run {
-		REPEAT (0, 9) as y {
-			REPEAT (0, 9) as x {
-				summon minecraft:marker ~<%x * 4%> ~ ~<%y * 4%> {Tags:['example.anchor']}
-			}
-		}
 	}
 }
 
@@ -91,11 +76,12 @@ function queue_path {
 	}
 
 	execute \
-		as @e[type=minecraft:marker,tag=example.anchor,sort=random,distance=1..,limit=1] \
+		as @e[type=minecraft:marker,tag=maze.anchor,sort=random,distance=1..,limit=1] \
 		at @s \
 		summon minecraft:item_frame \
 	run {
 		data modify storage astar:input path.to set from entity @s block_pos
+		particle minecraft:block_marker{block_state:'iron_block'} ~ ~.5 ~ 0 0 0 0 0 force
 		kill @s
 	}
 
