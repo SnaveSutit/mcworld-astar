@@ -1,6 +1,7 @@
 {
 	"dev": true,
-	"nodeDebug": false,
+	"nodeDebug": true,
 	"verboseLogging": true,
-	"stepDebug": false
+	"stepDebug": false,
+	"diagonalHeuristic": false
 }

@@ -33,10 +33,6 @@ function remove_walls {
 		fill ~ ~1 ~ ~<%global.cell_size*global.maze_size%> ~1 ~<%global.cell_size*global.maze_size%> air
 }
 
-clock particle_clock 10t {
-	execute at @e[type=minecraft:marker,tag=maze.anchor] run particle minecraft:wax_off ~ ~.25 ~ 0 0 0 0 0 force
-}
-
 function place {
 	execute positioned 52 0 52 run {
 		function ./clear

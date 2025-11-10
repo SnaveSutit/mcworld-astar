@@ -1,8 +1,12 @@
 import ./score.mcbt
 
 <%%
-	global.yellow_concrete_cost = 5
-	global.red_concrete_cost = 10 * 4 // 4x slower than normal orthogonal movement
+	const multiplier = 1000;
+	global.orthogonal_cost = Math.ceil(1 * multiplier);
+	global.diagonal_cost = Math.ceil(Math.sqrt(2) * multiplier);
+
+	global.yellow_concrete_cost = Math.ceil(global.orthogonal_cost / 2); // 2x slower than normal orthogonal movement
+	global.red_concrete_cost = Math.ceil(global.orthogonal_cost * 3); // 4x slower than normal orthogonal movement
 %%>
 
 function load minecraft:load {
@@ -11,7 +15,6 @@ function load minecraft:load {
 	create astar.v
 
 	create astar.node.id
-	create astar.node.path_id
 	create astar.node.parent_id
 
 	create astar.node.h
@@ -19,7 +22,6 @@ function load minecraft:load {
 	create astar.node.f
 
 	create astar.node.x
-	create astar.node.y
 	create astar.node.z
 
 	set #-1 astar.v
@@ -207,7 +209,7 @@ function search {
 		$tp @s $(x) $(y) $(z)
 		tag @s add astar.from_node
 
-		function astar:node/init
+		function astar:node/init2d
 
 		set @s astar.node.g 0
 		set @s astar.node.f 0
@@ -258,7 +260,6 @@ dir search {
 
 		execute \
 			if score @s astar.node.x = #astar.path.to.x astar.v \
-			if score @s astar.node.y = #astar.path.to.y astar.v \
 			if score @s astar.node.z = #astar.path.to.z astar.v \
 		run return run block reached_target {
 			execute store result score #time astar.v run stopwatch query astar:tick_time 1000
@@ -267,9 +268,6 @@ dir search {
 			stopwatch restart astar:tick_time
 			function astar:search/trace
 		}
-
-		op #astar.parent.id astar.v = @s astar.node.id
-		op #astar.parent.g astar.v = @s astar.node.g
 
 		REPEAT (-1, 0) as y {
 			REPEAT (1, -1) as z {
@@ -283,8 +281,11 @@ dir search {
 			}
 		}
 
+		op #astar.parent.id astar.v = @s astar.node.id
+
 		# Orthogonal
-		set #astar.move_cost astar.v 10
+		set #astar.this.move_cost astar.v <%global.orthogonal_cost%>
+		op #astar.this.move_cost astar.v += @s astar.node.g
 		REPEAT (1, -1) as x {
 			REPEAT (1, -1) as z {
 				IF ((x === 0 || z === 0) && !(x === 0 && z === 0)) {
@@ -293,12 +294,14 @@ dir search {
 						if score #b<%config.sign(x)%>+0<%config.sign(z)%> astar.v matches 0 \
 						positioned ~<%x%> ~ ~<%z%> \
 					run \
-						function astar:node/update
+						function astar:node/update2d
 				}
 			}
 		}
+
 		# Diagonal
-		set #astar.move_cost astar.v 14
+		# Don't need to add parent's g cost again since it's already included in orthogonal move cost
+		add #astar.this.move_cost astar.v <%global.diagonal_cost - global.orthogonal_cost%>
 		REPEAT (1, -1) as x {
 			REPEAT (1, -1) as z {
 				IF (x !== 0 && z !== 0) {
@@ -309,7 +312,7 @@ dir search {
 						if score #b<%config.sign(x)%>+0+0 astar.v matches 0 \
 						positioned ~<%x%> ~ ~<%z%> \
 					run \
-						function astar:node/update
+						function astar:node/update2d
 				}
 			}
 		}
@@ -419,7 +422,6 @@ dir search {
 		tag @s add astar.path_node
 		data modify storage astar:temp path.nodes append value {}
 		execute store result storage astar:temp path.nodes[-1].x int 1 run get @s astar.node.x
-		execute store result storage astar:temp path.nodes[-1].y int 1 run get @s astar.node.y
 		execute store result storage astar:temp path.nodes[-1].z int 1 run get @s astar.node.z
 
 		IF (config.nodeDebug) {
@@ -482,15 +484,127 @@ dir search {
 	}
 }
 
+function test_diagonal_heuristic {
+	#> Diagonal Distance Heuristic
+	#>-----------------------------
+	#> Formula
+	# dx = abs(from.x - to.x)
+	# dz = abs(from.z - to.z)
+	# straight_cost = 10
+	# diagonal_cost = 14
+	# diagonal = (straight_cost - 2 * diagonal_cost) * min(dx, dz)
+	# distance = straight_cost * (dx + dz) + diagonal
+	#> Simplified
+	# dx = abs(from.x - to.x)
+	# dz = abs(from.z - to.z)
+	# diagonal = min(dx, dz) * -6
+	# distance = 10 * (dx + dz) + diagonal
+
+	op #x = #astar.path.from.x
+	op #z = #astar.path.from.z
+	op #x -= #astar.path.to.x
+	op #z -= #astar.path.to.z
+
+	abs #x astar.v
+	abs #z astar.v
+
+	op #diagonal = #x
+	op #diagonal < #z
+	op #diagonal *= <%global.diagonal_cost - (2 * global.orthogonal_cost)%>
+
+	op #x += #z
+	op #x *= <%global.orthogonal_cost%>
+
+	op #x += #diagonal
+
+	tellraw @a {score: {name: '#x', objective: astar.v}}
+}
+
+function test_manhattan_heuristic {
+	#> Manhattan Distance Heuristic
+	#>-----------------------------
+	#> Formula
+	# distance = straight_cost * (abs(from.x - to.x) + abs(from.z - to.z))
+
+	op #x = #astar.path.from.x
+	op #z = #astar.path.from.z
+	op #x -= #astar.path.to.x
+	op #z -= #astar.path.to.z
+
+	abs #x astar.v
+	abs #z astar.v
+
+	op #x += #z
+	op #x *= <%global.orthogonal_cost%>
+
+	tellraw @a {score: {name: '#x', objective: astar.v}}
+}
+
 dir node {
-	function init {
+	function init2d {
 		tag @s add astar.node
 		add #astar.nodes_calculated astar.v 1
 
 		#> Node Properties
 		#>-----------------
 		set @s astar.node.id run add #astar.last_node_id astar.v 1
-		op @s astar.node.path_id = #astar.path.id astar.v
+		op @s astar.node.parent_id = #astar.parent.id astar.v
+
+		data modify storage astar:temp pos set from entity @s Pos
+		set @s astar.node.x from storage astar:temp pos[0]
+		set @s astar.node.z from storage astar:temp pos[2]
+
+		#> Heuristic
+		#>-----------
+		# Get the difference between the current node and the end node
+		op @s astar.node.h = @s astar.node.x
+		op #z astar.v = @s astar.node.z
+		op @s astar.node.h -= #astar.path.to.x astar.v
+		op #z -= #astar.path.to.z
+
+		abs @s astar.node.h
+		abs #z astar.v
+
+		IF (config.diagonalHeuristic) {
+			op #diagonal astar.v = @s astar.node.h
+			op #diagonal < #z
+			op #diagonal *= <%global.diagonal_cost - (2 * global.orthogonal_cost)%>
+		}
+
+		op @s astar.node.h += #z astar.v
+		op @s astar.node.h *= <%global.orthogonal_cost * 1.3%>
+
+		IF (config.diagonalHeuristic) {
+			op @s astar.node.h += #diagonal astar.v
+		}
+
+		#> G Cost
+		#>--------
+		op @s astar.node.g = #astar.this.move_cost astar.v
+		# Block traversal costs
+		execute if block ~ ~-1 ~ minecraft:yellow_concrete run tag @s add astar.node.yellow_concrete
+		execute if entity @s[tag=astar.node.yellow_concrete] run add @s astar.node.g <%global.yellow_concrete_cost%>
+		execute if block ~ ~-1 ~ minecraft:red_concrete run tag @s add astar.node.red_concrete
+		execute if entity @s[tag=astar.node.red_concrete] run add @s astar.node.g <%global.red_concrete_cost%>
+
+		#> F Cost
+		#>--------
+		# (node.g + node.h)
+		op @s astar.node.f = @s astar.node.g
+		op @s astar.node.f += @s astar.node.h
+
+		IF (config.nodeDebug) {
+			function astar:debug/create_node_text_display
+		}
+	}
+
+	function init3d {
+		tag @s add astar.node
+		add #astar.nodes_calculated astar.v 1
+
+		#> Node Properties
+		#>-----------------
+		set @s astar.node.id run add #astar.last_node_id astar.v 1
 		op @s astar.node.parent_id = #astar.parent.id astar.v
 		# Since reading/writing storage is ~4x faster than the same operations on an entity's data we store the pos into storage before storing it into scores
 		data modify storage astar:temp pos set from entity @s Pos
@@ -532,6 +646,9 @@ dir node {
 		op #diff_mid astar.v -= @s astar.node.h
 
 		#> Use a HEAVILY reduced version of this formula:
+		# a = straight cost (10)
+		# b = diagonal cost (14)
+		# c = vertical cost (14)
 		# ((c - b) * diff_min) + ((b - a) * diff_mid) + (a * diff_max)
 		#> Since c and b are equal, subtracting, then multiplying them by diff_min is redundant
 		# ((b - a) * diff_mid) + (a * diff_max)
@@ -588,32 +705,32 @@ dir node {
 		}
 	}
 
-	function update {
+	function update2d {
 		execute \
 			as @e[type=minecraft:marker,tag=astar.node,distance=..0.1,limit=1] \
 			run return run execute unless entity @s[tag=astar.closed] \
-		run block reparent {
-			op #move_cost astar.v = #astar.move_cost
+		run block reparent_if_better {
+			op #move_cost = #astar.this.move_cost
+			# Block traversal costs
 			execute if entity @s[tag=astar.node.yellow_concrete] run add #move_cost astar.v <%global.yellow_concrete_cost%>
 			execute if entity @s[tag=astar.node.red_concrete] run add #move_cost astar.v <%global.red_concrete_cost%>
-			op #move_cost astar.v += #astar.parent.g
+
 			# If new g cost is lower, update parent and costs
-			execute if score @s astar.node.g > #move_cost astar.v run {
-				# Set new parent
-				op @s astar.node.parent_id = #astar.parent.id astar.v
-				# Update g cost
-				op @s astar.node.g = #move_cost astar.v
+			execute unless score @s astar.node.g > #move_cost astar.v run return 0
+			# Set new parent
+			op @s astar.node.parent_id = #astar.parent.id astar.v
+			# Update g cost
+			op @s astar.node.g = #move_cost astar.v
 
-				# Update f cost
-				op @s astar.node.f = @s astar.node.h
-				op @s astar.node.f += @s astar.node.g
+			# Update f cost
+			op @s astar.node.f = @s astar.node.h
+			op @s astar.node.f += @s astar.node.g
 
-				IF (config.nodeDebug) {
-					function astar:debug/create_node_text_display
-				}
+			IF (config.nodeDebug) {
+				function astar:debug/create_node_text_display
 			}
 		}
-		execute summon minecraft:marker run function ./init
+		execute summon minecraft:marker run function ./init2d
 	}
 }
 
@@ -683,38 +800,6 @@ IF (config.dev || config.nodeDebug || config.stepDebug) {
 			function ./queue_from_debug_entities
 		}
 
-		function print_node {
-			particle minecraft:block_marker{block_state:"minecraft:gold_block"} ~ ~.5 ~
-
-			set #this.x astar.v from entity @s Pos[0]
-			set #this.y astar.v from entity @s Pos[1]
-			set #this.z astar.v from entity @s Pos[2]
-
-			tellraw @a [ \
-				'', \
-				[{ text: '[', color: gray }, { text:'A*',color: green}, ']'], \
-				{ text: ' Node', color: white }, \
-				{ text: ' ID=', color: yellow }, { score: { name: '@s', objective: astar.node.id }}, \
-				{ text: ' Pos=', color: light_purple }, \
-				'[', \
-				{ score: { name: '#this.x', objective: astar.v }, color: red }, ' ', \
-				{ score: { name: '#this.y', objective: astar.v }, color: green }, ' ', \
-				{ score: { name: '#this.z', objective: astar.v }, color: blue }, \
-				']', \
-				{ text: ' X=', color: red }, { score: { name: '@s', objective: astar.node.x }}, \
-				{ text: ' Y=', color: green }, { score: { name: '@s', objective: astar.node.y }}, \
-				{ text: ' Z=', color: blue }, { score: { name: '@s', objective: astar.node.z }}, \
-				{ text: ' F=', color: gold }, { score: { name: '@s', objective: astar.node.f }}, \
-				{ text: ' G=', color: green }, { score: { name: '@s', objective: astar.node.g }}, \
-				{ text: ' H=', color: red }, { score: { name: '@s', objective: astar.node.h }}, \
-				{ text: ' ParentID=', color: aqua }, { score: { name: '@s', objective: astar.node.parent_id }} \
-			]
-		}
-
-		function print_nearest_node {
-			execute as @n[type=minecraft:marker, tag=astar.node] at @s run function ./print_node
-		}
-
 		function update_node_text_displays {
 			gamerule max_command_sequence_length <%65536*4%>
 			kill @e[type=minecraft:text_display,tag=astar.debug.node_display]
@@ -727,17 +812,19 @@ IF (config.dev || config.nodeDebug || config.stepDebug) {
 		}
 
 		function create_node_text_display {
-			kill @e[type=minecraft:text_display,tag=astar.debug.node_display,limit=2,distance=..0.5]
+			kill @e[type=minecraft:text_display,tag=astar.debug.node_display.parent_arrow,limit=2,distance=..0.5]
 			# Expects to be run as a node entity
 			op #this.node.g astar.v = @s astar.node.g
 			op #this.node.h astar.v = @s astar.node.h
 			op #this.node.f astar.v = @s astar.node.f
 			op #this.node.id astar.v = @s astar.node.id
 			op #this.node.parent_id astar.v = @s astar.node.parent_id
+			op #this.node.x astar.v = @s astar.node.x
+			op #this.node.z astar.v = @s astar.node.z
 
 			execute if score #this.node.parent_id astar.v matches 0.. run {
 				summon minecraft:text_display ~ ~ ~ { \
-					Tags: ['astar.debug.node_display'], \
+					Tags: ['astar.debug.node_display','astar.debug.node_display.parent_arrow'], \
 					transformation:{translation:[-0.125,0.1,0],left_rotation:[-1,0,0,1],right_rotation:[0,0,-1,1],scale:[1,1,1]}, \
 					text: '→', \
 					background: 0 \
@@ -747,12 +834,12 @@ IF (config.dev || config.nodeDebug || config.stepDebug) {
 					if score @s astar.node.id = #this.node.parent_id astar.v \
 					facing entity @s feet \
 				run \
-					tp @e[type=minecraft:text_display,tag=astar.debug.node_display,limit=1,distance=..0.1] ~.25 ~ ~ ~ ~
+					tp @e[type=minecraft:text_display,tag=astar.debug.node_display.parent_arrow,limit=1,distance=..0.1] ~.25 ~ ~ ~ ~
 			}
 
 			<%%
 				global.nbt = {
-					Tags: ['astar.debug.node_display'],
+					Tags: ['astar.debug.node_display','astar.debug.node_display.node'],
 					transformation:{
 						translation: [0.125,0.1,0],
 						left_rotation: [-1,0,0,1],
@@ -769,10 +856,22 @@ IF (config.dev || config.nodeDebug || config.stepDebug) {
 						'\n',
 						{ score: { name: '#this.node.id', objective: 'astar.v' }, color:'yellow' },
 						'⏵',
-						{ score: { name: '#this.node.parent_id', objective: 'astar.v' }, color:'aqua' }
+						{ score: { name: '#this.node.parent_id', objective: 'astar.v' }, color:'aqua' },
+						'\n',
+						{ score: { name: '#this.node.x', objective: 'astar.v' }, color:'red' },
+						',',
+						{ score: { name: '#this.node.z', objective: 'astar.v' }, color:'blue' }
 					]
 				}
 			%%>
+
+			execute if entity @e[type=minecraft:text_display,tag=astar.debug.node_display,limit=1,distance=..0.1] run return run {
+				execute if entity @s[tag=astar.path_node] run return run \
+					data merge entity @e[type=minecraft:text_display,tag=astar.debug.node_display,limit=1,distance=..0.1] <%JSON.stringify({...global.nbt, background: 0x555555ff})%>
+				execute if entity @s[tag=astar.closed] run return run \
+					data merge entity @e[type=minecraft:text_display,tag=astar.debug.node_display,limit=1,distance=..0.1] <%JSON.stringify({...global.nbt, background: 0x55ff5555})%>
+				data merge entity @e[type=minecraft:text_display,tag=astar.debug.node_display,limit=1,distance=..0.1] <%JSON.stringify(global.nbt)%>
+			}
 
 			execute if entity @s[tag=astar.path_node] run return run \
 				summon minecraft:text_display ~ ~ ~ <%JSON.stringify({...global.nbt, background: 0x555555ff})%>

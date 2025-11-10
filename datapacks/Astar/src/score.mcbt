@@ -28,6 +28,14 @@ template display {
 	}
 }
 
+template configure {
+	with defaultobjective:word {
+		<%%
+			global.astar.defaultobjective = defaultobjective;
+		%%>
+	}
+}
+
 template set {
 	# set <name> <objective>
 	# set <name> <objective> <value>
@@ -107,14 +115,35 @@ template abs {
 
 # Operations
 template op {
+	load {
+		<%%
+			global.astar = {
+				defaultobjective: config.internalScoreboardName,
+			};
+		%%>
+	}
+
+	# Default objective
+	# op <name1> <objective1> <operation> <name2>
+	with name1:word operation:word name2:word {
+		IF (!isNaN(parseInt(name2))) {
+			load {
+				scoreboard players set <%'#' + name2%> <%config.internalScoreboardName%> <%name2%>
+			}
+			scoreboard players operation <%name1%> <%config.internalScoreboardName%> <%operation%> <%'#' + name2%> <%config.internalScoreboardName%>
+		} ELSE {
+			scoreboard players operation <%name1%> <%config.internalScoreboardName%> <%operation%> <%name2%> <%config.internalScoreboardName%>
+		}
+	}
+
 	# Implied secondary objective
 	# op <name1> <objective1> <operation> <name2>
 	with name1:word objective:word operation:word name2:word {
 		IF (!isNaN(parseInt(name2))) {
 			load {
-				scoreboard players set <%name2%> <%config.internalScoreboardName%> <%name2%>
+				scoreboard players set <%'#' + name2%> <%config.internalScoreboardName%> <%name2%>
 			}
-			scoreboard players operation <%name1%> <%objective%> <%operation%> <%name2%> <%config.internalScoreboardName%>
+			scoreboard players operation <%name1%> <%objective%> <%operation%> <%'#' + name2%> <%config.internalScoreboardName%>
 		} ELSE {
 			scoreboard players operation <%name1%> <%objective%> <%operation%> <%name2%> <%objective%>
 		}
