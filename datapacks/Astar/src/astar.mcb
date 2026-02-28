@@ -66,18 +66,16 @@ function clear_queue {
 }
 
 function queue_path {
-	#ARGS: { id: int, from: {x: int, y: int, z: int}, to: {x: int, y: int, z: int}, max_ms?: int }
+	# Expected Inputs
+	# on_path_found: Callback function to run as the queuer when a path is found
+	#ARGS: { id: int, from: {x: int, y: int, z: int}, to: {x: int, y: int, z: int}, max_ms?: int, on_path_found: string }
 
-	$data modify storage astar:data path_queue set value { id: $(id), from: $(from), to: $(to), max_ms: $(max_ms) }
-}
-
-#ARGS: {nodes: [{x: int, y: int, z: int}, ...], queuer: UUID, path_id: int}
-tag function on_path_found {
+	$data modify storage astar:data path_queue set value { id: $(id), from: $(from), to: $(to), max_ms: $(max_ms), on_path_found: $(on_path_found) }
 }
 
 function queue_path_from_storage {
 	# Expected Inputs
-	#storage astar:input path: { from: {x: int, y: int, z: int}, to: {x: int, y: int, z: int}, max_ms?: int }
+	#storage astar:input path: { from: {x: int, y: int, z: int}, to: {x: int, y: int, z: int}, max_ms?: int, on_path_found: string }
 
 	execute store result storage astar:input path.id int 1 run add #astar.last_path_id astar.v 1
 
@@ -106,7 +104,8 @@ function queue_path_from_storage {
 			{ storage: 'astar:data', nbt:'path_queue[-1].to.x', color: red }, ' ', \
 			{ storage: 'astar:data', nbt:'path_queue[-1].to.y', color: green }, ' ', \
 			{ storage: 'astar:data', nbt:'path_queue[-1].to.z', color: blue }, \
-			']' \
+			']', \
+			{ text: ' on_path_found=', color: yellow }, { storage: 'astar:data', nbt:'path_queue[-1].on_path_found', color: gold } \
 		]
 	}
 
@@ -115,7 +114,7 @@ function queue_path_from_storage {
 
 function queue_priority_path_from_storage {
 		# Expected Inputs
-	#storage astar:input path: { from: {x: int, y: int, z: int}, to: {x: int, y: int, z: int}, max_ms?: int }
+	#storage astar:input path: { from: {x: int, y: int, z: int}, to: {x: int, y: int, z: int}, max_ms?: int, on_path_found: string }
 
 	execute store result storage astar:input path.id int 1 run add #astar.last_path_id astar.v 1
 
@@ -144,7 +143,8 @@ function queue_priority_path_from_storage {
 			{ storage: 'astar:data', nbt:'path_queue[-1].to.x', color: red }, ' ', \
 			{ storage: 'astar:data', nbt:'path_queue[-1].to.y', color: green }, ' ', \
 			{ storage: 'astar:data', nbt:'path_queue[-1].to.z', color: blue }, \
-			']' \
+			']', \
+			{ text: ' on_path_found=', color: yellow }, { storage: 'astar:data', nbt:'path_queue[-1].on_path_found', color: gold } \
 		]
 	}
 
@@ -160,7 +160,7 @@ function process_queue {
 
 function search {
 	# Expected Inputs
-	#storage astar:data path_queue[0]: { id: int, from: {x: int, y: int, z: int}, to: {x: int, y: int, z: int}, max_ms?: int }
+	#storage astar:data path_queue[0]: { id: int, from: {x: int, y: int, z: int}, to: {x: int, y: int, z: int}, max_ms?: int, on_path_found: string }
 
 	IF (config.nodeDebug) {
 		kill @e[type=minecraft:text_display,tag=astar.debug.node_display]
@@ -181,6 +181,7 @@ function search {
 	data remove storage astar:temp path
 	set #astar.path.id astar.v from storage astar:data path_queue[0].id
 	data modify storage astar:temp path.queuer set from storage astar:data path_queue[0].queuer
+	data modify storage astar:temp path.on_path_found set from storage astar:data path_queue[0].on_path_found
 
 	set #astar.max_ms astar.v from storage astar:data path_queue[0].max_ms
 	execute if score #astar.max_ms astar.v matches 0 run set #astar.max_ms astar.v <%2**31-1%>
@@ -411,10 +412,15 @@ dir search {
 					{ text: ' SearchTime=', color: aqua }, { score: { name: '#astar.total_ms', objective: astar.v }}, 'ms', \
 					{ text: ' TraceTime=', color: aqua }, { score: { name: '#time', objective: astar.v }}, 'ms', \
 					{ text: ' Incomplete=', color: red }, { nbt: 'path.incomplete', storage: 'astar:temp' }, \
+					{ text: ' on_path_found=', color: yellow }, { nbt: 'path.on_path_found', storage: 'astar:temp' }, \
 				]
 			}
 			kill @e[type=minecraft:marker,tag=astar.node]
-			function #astar:on_path_found with storage astar:temp path
+			block select_queuer { with storage astar:temp path
+				# NOTE: MCB bug, MCB introduces a $ prefix for function paths. Need to use <%'function $(...)'%> to avoid it.
+				$execute as $(queuer) at @s run <%'function $(on_path_found)'%> with storage astar:temp path
+			}
+			# function #astar:on_path_found with storage astar:temp path
 			op #astar.state astar.v = #astar.state.idle
 			schedule function astar:process_queue 1t replace
 		}

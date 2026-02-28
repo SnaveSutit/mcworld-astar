@@ -22,19 +22,19 @@ function clear {
 	gamerule max_block_modifications <%101*101%>
 	kill @e[type=minecraft:marker,tag=maze.target]
 	kill @e[type=minecraft:marker,tag=maze.anchor]
-	execute positioned 52 0 52 run {
+	execute positioned 64 0 64 run {
 		fill ~ ~ ~ ~100 ~ ~100 air
 		fill ~ ~1 ~ ~100 ~1 ~100 air
 	}
 }
 
 function remove_walls {
-	execute positioned 52 0 52 run \
+	execute positioned 64 0 64 run \
 		fill ~ ~1 ~ ~<%global.cell_size*global.maze_size%> ~1 ~<%global.cell_size*global.maze_size%> air
 }
 
 function place {
-	execute positioned 52 0 52 run {
+	execute positioned 64 0 64 run {
 		function ./clear
 		fill ~ ~ ~ ~<%global.cell_size*global.maze_size%> ~ ~<%global.cell_size*global.maze_size%> red_concrete
 		fill ~ ~1 ~ ~<%global.cell_size*global.maze_size%> ~1 ~<%global.cell_size*global.maze_size%> light_gray_concrete

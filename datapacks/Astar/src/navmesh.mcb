@@ -1,0 +1,63 @@
+import ./score.mcbt
+
+function load minecraft:load {
+
+}
+
+function generate {
+	$tellraw @a [ \
+		'', \
+		[{ text: '[', color: gray }, { text:'NavMesh',color: blue}, ']'], \
+		{ text: ' Generating NavMesh', color: green }, \
+		{ text: ' $(sizeX)', color: red }, \
+		{ text: 'x', color: white }, \
+		{ text: '$(sizeZ)', color: blue }, \
+	]
+
+	kill @e[type=minecraft:item_display,tag=astar.navmesh.debug]
+
+	$scoreboard players set #loop.x astar.v $(sizeX)
+	$scoreboard players set #loop.z astar.v $(sizeZ)
+	execute align xyz run {
+		op #loop = #loop.z
+		{
+			summon minecraft:item_display ~ ~ ~ { \
+				Tags:['astar.navmesh.debug'], \
+				item:{id:'minecraft:glass'}, \
+				transformation:{translation:[8,.005,8],left_rotation:[0,0,0,1],right_rotation:[0,0,0,1],scale:[16,.01,16]}, \
+				teleport_duration: 0, \
+			}
+
+			execute summon minecraft:marker run {
+				tag @s add astar.navmesh.node
+
+				REPEAT (0, 15) as i {
+					execute if block ~16 ~ ~<%i%> minecraft:air if block ~15 ~ ~<%i%> minecraft:air run {
+						particle minecraft:end_rod ~16.5 ~.5 ~<%i+0.5%> 0 0 0 0 0 force
+						particle minecraft:end_rod ~15.5 ~.5 ~<%i+0.5%> 0 0 0 0 0 force
+					}
+				}
+				REPEAT (0, 15) as i {
+					execute if block ~<%i%> ~ ~16 minecraft:air if block ~<%i%> ~ ~15 minecraft:air run {
+						particle minecraft:end_rod ~<%i+0.5%> ~.5 ~16.5 0 0 0 0 0 force
+						particle minecraft:end_rod ~<%i+0.5%> ~.5 ~15.5 0 0 0 0 0 force
+					}
+				}
+			}
+
+			sub #loop astar.v 1
+			execute if score #loop astar.v matches 1.. positioned ~ ~ ~16 run function ^0
+		}
+
+		sub #loop.x astar.v 1
+		execute if score #loop.x astar.v matches 1.. positioned ~16 ~ ~ run function ^0
+	}
+
+
+}
+
+dir debug {
+	function test {
+		execute positioned 64 1 64 run function ../generate {sizeX: 7, sizeZ: 7}
+	}
+}

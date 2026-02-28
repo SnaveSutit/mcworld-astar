@@ -21,8 +21,8 @@ clock agents_tick 5t {
 	execute as @e[type=minecraft:item_display,tag=example.agent] at @s run {
 		execute if score @s example.state = #example.state.idle i run {
 			data modify entity @s glow_color_override set value 0xFF0000
-			op @s example.state = #example.state.waiting_for_path i
 			function example:queue_path
+			op @s example.state = #example.state.waiting_for_path i
 		}
 
 		execute if score @s example.state = #example.state.waiting_for_path i run {
@@ -72,7 +72,14 @@ function queue_path {
 	# Expects to be run as & at an agent
 	kill @e[type=minecraft:text_display,tag=example.display]
 
-	data modify storage astar:input path set value {max_ms: 1000}
+	data modify storage astar:input path set value {max_ms: 1000, on_path_found: 'example:on_path_found'}
+	data modify storage astar:input path.from.x set from entity @s block_pos[0]
+	data modify storage astar:input path.from.y set from entity @s block_pos[1]
+	data modify storage astar:input path.from.z set from entity @s block_pos[2]
+	data modify storage astar:input path.to.x set from entity @s block_pos[0]
+	data modify storage astar:input path.to.y set from entity @s block_pos[1]
+	data modify storage astar:input path.to.z set from entity @s block_pos[2]
+	function astar:queue_path_from_storage
 
 	execute summon minecraft:item_frame run {
 		data modify storage astar:input path.from.x set from entity @s block_pos[0]
@@ -146,14 +153,13 @@ function on_path_found {
 		to: {x: int, y: int, z: int}
 	}
 	###
+	#> All of the above can also be accessed from storage astar:temp path
 
-	$execute as $(queuer) run {
-		data modify entity @s item.components.minecraft:custom_data.path_nodes \
-			set from storage astar:temp path.nodes
+	data modify entity @s item.components.minecraft:custom_data.path_nodes \
+		set from storage astar:temp path.nodes
 
-		execute if data storage astar:temp {path:{incomplete: true}} run \
-			data modify entity @s item.components.minecraft:custom_data.next_target set from storage astar:temp path.to
+	execute if data storage astar:temp {path:{incomplete: true}} run \
+		data modify entity @s item.components.minecraft:custom_data.next_target set from storage astar:temp path.to
 
-		op @s example.state = #example.state.following_path i
-	}
+	op @s example.state = #example.state.following_path i
 }
