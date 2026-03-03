@@ -67,20 +67,34 @@ function clear_queue {
 
 function queue_path {
 	# Expected Inputs
-	# on_path_found: Callback function to run as the queuer when a path is found
-	#ARGS: { id: int, from: {x: int, y: int, z: int}, to: {x: int, y: int, z: int}, max_ms?: int, on_path_found: string }
-
-	$data modify storage astar:data path_queue set value { id: $(id), from: $(from), to: $(to), max_ms: $(max_ms), on_path_found: $(on_path_found) }
-}
-
-function queue_path_from_storage {
-	# Expected Inputs
 	#storage astar:input path: { from: {x: int, y: int, z: int}, to: {x: int, y: int, z: int}, max_ms?: int, on_path_found: string }
+
+	execute store result score #from.y astar.v run data get storage astar:input path.from.x
+	execute store result score #to.y astar.v run data get storage astar:input path.to.x
+	execute unless score #from.y astar.v = #to.y astar.v run return run block path_cannot_be_vertical {
+		tellraw @a [ \
+			'', \
+			[{ text: '[', color: gray }, { text:'A*',color: green}, ']'], \
+			{ text: ' Path Queuing Failed: Vertical pathfinding is not supported.', color: red }, \
+			{ text: ' From=', color: light_purple }, \
+			'[', \
+			{ storage: 'astar:input', nbt:'path.from.x', color: red }, ' ', \
+			{ storage: 'astar:input', nbt:'path.from.y', color: green }, ' ', \
+			{ storage: 'astar:input', nbt:'path.from.z', color: blue }, \
+			']', \
+			{ text: ' To=', color: light_purple }, \
+			'[', \
+			{ storage: 'astar:input', nbt:'path.to.x', color: red }, ' ', \
+			{ storage: 'astar:input', nbt:'path.to.y', color: green }, ' ', \
+			{ storage: 'astar:input', nbt:'path.to.z', color: blue }, \
+			']' \
+		]
+	}
 
 	execute store result storage astar:input path.id int 1 run add #astar.last_path_id astar.v 1
 
 	function gu:get_entity_uuid_string
-	data modify storage astar:input path.queuer set from storage gu:uuid out
+	data modify storage astar:input path.path_owner set from storage gu:uuid out
 
 	data modify storage astar:data path_queue append from storage astar:input path
 	data remove storage astar:input path
@@ -112,14 +126,36 @@ function queue_path_from_storage {
 	schedule function astar:process_queue 1t replace
 }
 
-function queue_priority_path_from_storage {
+function queue_priority_path {
 		# Expected Inputs
 	#storage astar:input path: { from: {x: int, y: int, z: int}, to: {x: int, y: int, z: int}, max_ms?: int, on_path_found: string }
+
+	execute store result score #from.y astar.v run data get storage astar:input path.from.x
+	execute store result score #to.y astar.v run data get storage astar:input path.to.x
+	execute unless score #from.y astar.v = #to.y astar.v run return run block path_cannot_be_vertical {
+		tellraw @a [ \
+			'', \
+			[{ text: '[', color: gray }, { text:'A*',color: green}, ']'], \
+			{ text: ' Path Queuing Failed: Vertical pathfinding is not supported.', color: red }, \
+			{ text: ' From=', color: light_purple }, \
+			'[', \
+			{ storage: 'astar:input', nbt:'path.from.x', color: red }, ' ', \
+			{ storage: 'astar:input', nbt:'path.from.y', color: green }, ' ', \
+			{ storage: 'astar:input', nbt:'path.from.z', color: blue }, \
+			']', \
+			{ text: ' To=', color: light_purple }, \
+			'[', \
+			{ storage: 'astar:input', nbt:'path.to.x', color: red }, ' ', \
+			{ storage: 'astar:input', nbt:'path.to.y', color: green }, ' ', \
+			{ storage: 'astar:input', nbt:'path.to.z', color: blue }, \
+			']' \
+		]
+	}
 
 	execute store result storage astar:input path.id int 1 run add #astar.last_path_id astar.v 1
 
 	function gu:get_entity_uuid_string
-	data modify storage astar:input path.queuer set from storage gu:uuid out
+	data modify storage astar:input path.path_owner set from storage gu:uuid out
 
 	data modify storage astar:data path_queue prepend from storage astar:input path
 	data remove storage astar:input path
@@ -180,7 +216,7 @@ function search {
 	# Load path data from storage
 	data remove storage astar:temp path
 	set #astar.path.id astar.v from storage astar:data path_queue[0].id
-	data modify storage astar:temp path.queuer set from storage astar:data path_queue[0].queuer
+	data modify storage astar:temp path.path_owner set from storage astar:data path_queue[0].path_owner
 	data modify storage astar:temp path.on_path_found set from storage astar:data path_queue[0].on_path_found
 
 	set #astar.max_ms astar.v from storage astar:data path_queue[0].max_ms
@@ -418,9 +454,8 @@ dir search {
 			kill @e[type=minecraft:marker,tag=astar.node]
 			block select_queuer { with storage astar:temp path
 				# NOTE: MCB bug, MCB introduces a $ prefix for function paths. Need to use <%'function $(...)'%> to avoid it.
-				$execute as $(queuer) at @s run <%'function $(on_path_found)'%> with storage astar:temp path
+				$execute as $(path_owner) at @s run <%'function $(on_path_found)'%>
 			}
-			# function #astar:on_path_found with storage astar:temp path
 			op #astar.state astar.v = #astar.state.idle
 			schedule function astar:process_queue 1t replace
 		}
@@ -798,7 +833,7 @@ IF (config.dev || config.nodeDebug || config.stepDebug) {
 				data modify storage astar:input path.to.z set from entity @s block_pos[2]
 			}
 
-			function astar:queue_path_from_storage
+			function astar:queue_path
 		}
 
 		function test {

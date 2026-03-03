@@ -105,7 +105,7 @@ function queue_path {
 			}
 		}
 		data remove entity @s item.components.minecraft:custom_data.next_target
-		function astar:queue_priority_path_from_storage
+		function astar:queue_priority_path
 	} else run {
 		set @s example.retries 0
 		execute \
@@ -126,7 +126,7 @@ function queue_path {
 			}
 			kill @s
 		}
-		function astar:queue_path_from_storage
+		function astar:queue_path
 	}
 
 	op @s example.path_id = #astar.last_path_id astar.v
@@ -134,9 +134,9 @@ function queue_path {
 
 function on_path_found {
 	###
-	ARGS: {
+	Storage ARGS: {
 		nodes: [{x: int, y: int, z: int}, ...],
-		queuer: UUID,
+		path_owner: UUID,
 		path_id: int,
 		incomplete: bool,
 		max_ms: int
