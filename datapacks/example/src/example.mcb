@@ -73,13 +73,6 @@ function queue_path {
 	kill @e[type=minecraft:text_display,tag=example.display]
 
 	data modify storage astar:input path set value {max_ms: 1000, on_path_found: 'example:on_path_found'}
-	data modify storage astar:input path.from.x set from entity @s block_pos[0]
-	data modify storage astar:input path.from.y set from entity @s block_pos[1]
-	data modify storage astar:input path.from.z set from entity @s block_pos[2]
-	data modify storage astar:input path.to.x set from entity @s block_pos[0]
-	data modify storage astar:input path.to.y set from entity @s block_pos[1]
-	data modify storage astar:input path.to.z set from entity @s block_pos[2]
-	function astar:queue_path_from_storage
 
 	execute summon minecraft:item_frame run {
 		data modify storage astar:input path.from.x set from entity @s block_pos[0]
@@ -135,8 +128,6 @@ function queue_path {
 		}
 		function astar:queue_path_from_storage
 	}
-
-
 
 	op @s example.path_id = #astar.last_path_id astar.v
 }
