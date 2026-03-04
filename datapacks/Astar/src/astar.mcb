@@ -69,8 +69,8 @@ function queue_path {
 	# Expected Inputs
 	#storage astar:input path: { from: {x: int, y: int, z: int}, to: {x: int, y: int, z: int}, max_ms?: int, on_path_found: string }
 
-	execute store result score #from.y astar.v run data get storage astar:input path.from.x
-	execute store result score #to.y astar.v run data get storage astar:input path.to.x
+	execute store result score #from.y astar.v run data get storage astar:input path.from.y
+	execute store result score #to.y astar.v run data get storage astar:input path.to.y
 	execute unless score #from.y astar.v = #to.y astar.v run return run block path_cannot_be_vertical {
 		tellraw @a [ \
 			'', \
