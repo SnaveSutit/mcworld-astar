@@ -3,7 +3,7 @@ data/score/function/op/load.mcfunction:be83140cd825d3694e8aa6e2bfa90e9e6cbf0c1a
 data/astar/function/reset.mcfunction:1e71c6d1392766d9ceb3bfae16c76291725c618d
 data/astar/function/clear_queue.mcfunction:309b3afd16010ccfc59c999b51b4bc42c8534c92
 data/astar/function/path_cannot_be_vertical.mcfunction:b444882b0fb816c2a4d7237a20134b530e1066d6
-data/astar/function/queue_path.mcfunction:3775279db423e47141f65f5754c5abee80c425cf
+data/astar/function/queue_path.mcfunction:6c4cae0a591271f2f9edaacb7d8bc6f355debf97
 data/astar/function/queue_priority_path.mcfunction:89e8fc37086a07fc0bcd8949cacf461b4f525b92
 data/astar/function/process_queue.mcfunction:3696762d0306a6418a95a4402034ced300d60455
 data/astar/function/init_from_node.mcfunction:74e171e6839d541f666253131b185c309080f365
@@ -51,6 +51,10 @@ data/astar/function/debug/zzz/4.mcfunction:7ac3920212fb1996cbfd99178b081ee1927b2
 data/astar/function/debug/zzz/5.mcfunction:dd2daf150918f4d541f1a9782ebcd4187f6d4fe6
 data/astar/function/debug/create_node_text_display.mcfunction:cfc2300417e58b4351a7b76215bb892bd42fa44a
 data/astar/function/zzz/load.mcfunction:c7c9c292249ecb64e9dce230ed4dd3031aa3daa7
+data/gu/function/on_load.mcfunction:4798e2aa0b02be308d4345fcb5368c15b6548239
+data/gu/function/zzz/0.mcfunction:30685f83507791f2251f66d54da6d10b44a85138
+data/gu/function/zzz/1.mcfunction:e608d92020333e864e8c48b69873524c69063700
+data/gu/function/get_entity_uuid_string.mcfunction:56f5820028b2d72b683dfb483b8d4394e3fee3e3
 data/navmesh/function/load.mcfunction:be83140cd825d3694e8aa6e2bfa90e9e6cbf0c1a
 data/navmesh/function/zzz/3.mcfunction:21003f4c293867a19c2331c47037e657ed96713b
 data/navmesh/function/zzz/4.mcfunction:52c12987b894889393bec9f6363eb450acb211bd
@@ -89,4 +93,4 @@ data/navmesh/function/zzz/1.mcfunction:c419f06a8d6bbe2d5cad7b564a87c61f2fdab366
 data/navmesh/function/zzz/0.mcfunction:8b212e086cb453fc6f8354bd81505802ce3d6bf1
 data/navmesh/function/generate.mcfunction:fa2b3fce869bb05db7b51f602c9f1139be8c7627
 data/navmesh/function/debug/test.mcfunction:10319949d81c849a630c7bd1ce462b776419f597
-data/minecraft/tags/function/load.json:90efd68dfaf22036e29c663d6d1767dff6b42d5f
+data/minecraft/tags/function/load.json:8b286e4d3f96774a098643f8af642dec94c12103

@@ -1,0 +1,7 @@
+{
+	"dev": false,
+	"nodeDebug": false,
+	"verboseLogging": false,
+	"stepDebug": false,
+	"diagonalHeuristic": false
+}
