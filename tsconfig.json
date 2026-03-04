@@ -1,8 +1,24 @@
 {
-	"include": [".tools/*"],
+	"include": ["src/**/*.ts", ".scripts/**/*.ts"],
+	"exclude": ["**/node_modules/**"],
 	"compilerOptions": {
-		"alwaysStrict": true,
+		"outDir": "./dist/",
+		"declarationMap": true,
+		"noImplicitAny": true,
+		"module": "nodenext",
 		"target": "ES2022",
-		"moduleResolution": "Node"
+		"moduleResolution": "nodenext",
+		"strict": true,
+		"types": ["node", "bun"],
+		"resolveJsonModule": true,
+		"declaration": true,
+		"allowSyntheticDefaultImports": true,
+		"allowUmdGlobalAccess": true,
+		"allowUnreachableCode": true,
+		"esModuleInterop": true,
+		"isolatedModules": true,
+		"alwaysStrict": true,
+		"skipDefaultLibCheck": true,
+		"skipLibCheck": true
 	}
 }
