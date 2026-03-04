@@ -10,7 +10,9 @@ import ./score.mcbt
 %%>
 
 function load minecraft:load {
-	gamerule max_command_sequence_length 65536
+	IF (config.dev) {
+		gamerule max_command_sequence_length 65536
+	}
 
 	create astar.v
 
